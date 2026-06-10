@@ -1,0 +1,6 @@
+{
+  "name": "NcSound Publishing",
+  "description": "A modern publishing administration and sync licensing platform bridging the gap between independent artists and top-tier music supervisors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
