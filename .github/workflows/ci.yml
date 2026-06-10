@@ -10,20 +10,6 @@ jobs:
   lint-test-build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: supabase/postgres:15.1.1.122
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 
