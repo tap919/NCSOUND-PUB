@@ -1,4 +1,4 @@
-import { Play, ShieldCheck, Download, ChevronLeft, BrainCircuit, Radio, Zap, KeyRound } from 'lucide-react';
+﻿import { Play, ShieldCheck, Download, ChevronLeft, BrainCircuit, Radio, Zap, KeyRound, ShoppingCart } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -73,7 +73,7 @@ export default function TrackDetail() {
         <ChevronLeft className="w-4 h-4 mr-1" /> Back to Catalog
       </Link>
 
-      {/* Metadata Bar — visible at top, shows richness */}
+      {/* Metadata Bar â€” visible at top, shows richness */}
       <div className="flex flex-wrap gap-2 mb-8 p-4 bg-neutral-900/50 border border-neutral-800">
         <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mr-2 flex items-center"><BrainCircuit className="w-3 h-3 mr-1 text-orange-500" /> Metadata:</span>
         {track.mood_tags?.map((m: string) => (
@@ -195,7 +195,7 @@ export default function TrackDetail() {
           </div>
         </div>
 
-        {/* Right Column — Licensing */}
+        {/* Right Column â€” Licensing */}
         <div className="space-y-6">
           <div className="bg-neutral-900 border border-neutral-800 p-6 relative overflow-hidden">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl"></div>
@@ -225,7 +225,7 @@ export default function TrackDetail() {
                     </button>
                   </div>
                   <Dialog.Close className="absolute top-4 right-4 text-neutral-500 hover:text-white">
-                    ✕
+                    âœ•
                   </Dialog.Close>
                 </Dialog.Content>
               </Dialog.Portal>
@@ -253,36 +253,69 @@ export default function TrackDetail() {
               </div>
               <div className="flex justify-between items-center bg-neutral-900 p-3 border border-neutral-800">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">PRO</span>
-                <span className="text-neutral-300 text-xs">{track.artists?.pro_affiliation || '—'}</span>
+                <span className="text-neutral-300 text-xs">{track.artists?.pro_affiliation || 'â€”'}</span>
               </div>
             </div>
           </div>
 
           {/* Self-Serve Licensing */}
-          <div className="border border-neutral-800 bg-neutral-900/50 p-6">
-            <h3 className="text-xl font-heading uppercase tracking-wider text-white flex items-center mb-4"><Radio className="w-5 h-5 mr-2 text-orange-500" /> Self-Serve Licenses</h3>
-            <ul className="space-y-3 font-sans text-sm">
-              {[
-                { name: 'Micro', desc: 'Podcast, YT <100k', price: '$75' },
-                { name: 'Creator', desc: 'YT 100k+, Social Ad', price: '$200' },
-                { name: 'Indie Film', desc: 'Short, Web Series', price: '$350' },
-                { name: 'Standard', desc: 'Indie Feature, Regional Ad', price: '$750' },
-              ].map(l => (
-                <li key={l.name} className="flex justify-between items-center group cursor-pointer hover:bg-neutral-800 transition-colors bg-neutral-900 border border-neutral-800 p-3">
-                  <div>
-                    <span className="text-neutral-200 font-bold block">{l.name}</span>
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-widest">{l.desc}</span>
-                  </div>
-                  <span className="text-orange-500 font-mono font-bold">{l.price}</span>
-                </li>
-              ))}
-            </ul>
-            <button className="w-full bg-orange-500 text-black px-4 py-3 text-xs font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors mt-4">
-              Buy Selected License
-            </button>
-          </div>
+          <LiveLicensePurchase trackId={track?.id} trackTitle={track?.title} />
+        </div>
         </div>
       </div>
+  );
+}
+
+function LiveLicensePurchase({ trackId, trackTitle }: { trackId?: string; trackTitle?: string }) {
+  const [selected, setSelected] = useState('Micro');
+  const [buying, setBuying] = useState(false);
+  const [email, setEmail] = useState('');
+
+  const TIERS = [
+    { name: 'Micro', desc: 'Podcast, YT <100k', price: 75 },
+    { name: 'Creator', desc: 'YT 100k+, Social Ad', price: 200 },
+    { name: 'Indie Film', desc: 'Short, Web Series', price: 350 },
+    { name: 'Standard', desc: 'Indie Feature, Regional Ad', price: 750 },
+  ];
+
+  const handleBuy = async () => {
+    if (!trackId) return;
+    if (!email) { alert('Enter your email'); return; }
+    setBuying(true);
+    try {
+      const res = await fetch('/api/license/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackId, licenseType: selected.toLowerCase(), price: TIERS.find(t => t.name === selected)?.price, buyerEmail: email, title: trackTitle }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else alert('Checkout failed');
+    } catch { alert('Checkout failed'); }
+    setBuying(false);
+  };
+
+  return (
+    <div className="border border-neutral-800 bg-neutral-900/50 p-6">
+      <h3 className="text-xl font-heading uppercase tracking-wider text-white flex items-center mb-4"><ShoppingCart className="w-5 h-5 mr-2 text-orange-500" /> Self-Serve Licenses</h3>
+      <div className="space-y-2 mb-4">
+        {TIERS.map(t => (
+          <button key={t.name} onClick={() => setSelected(t.name)}
+            className={'w-full flex justify-between items-center p-3 border transition-colors text-left ' + (selected === t.name ? 'border-orange-500 bg-orange-500/10' : 'border-neutral-800 bg-neutral-900 hover:bg-neutral-800')}>
+            <div>
+              <span className="text-white font-bold text-sm block">{t.name}</span>
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest">{t.desc}</span>
+            </div>
+            <span className="text-orange-500 font-mono font-bold">${t.price}</span>
+          </button>
+        ))}
+      </div>
+      <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
+        className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-sm focus:border-orange-500 outline-none mb-3 font-sans" />
+      <button onClick={handleBuy} disabled={buying}
+        className="w-full bg-orange-500 text-black px-4 py-3 text-xs font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+        <ShoppingCart className="w-4 h-4" /> {buying ? 'Processing...' : 'Buy ' + selected + ' License â€” $' + TIERS.find(t => t.name === selected)?.price}
+      </button>
     </div>
   );
 }

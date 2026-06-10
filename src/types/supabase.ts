@@ -730,11 +730,338 @@ export interface Database {
           created_at?: string
         }
       }
+      integration_configs: {
+        Row: {
+          id: string
+          platform: string
+          config_key: string
+          config_value: string
+          artist_id: string | null
+          enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          platform: string
+          config_key: string
+          config_value: string
+          artist_id?: string | null
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          platform?: string
+          config_key?: string
+          config_value?: string
+          artist_id?: string | null
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      platform_income: {
+        Row: {
+          id: string
+          track_id: string | null
+          artist_id: string | null
+          platform: string
+          period_start: string
+          period_end: string
+          stream_count: number | null
+          download_count: number | null
+          gross_revenue: number | null
+          net_revenue: number | null
+          currency: string | null
+          metadata: Json | null
+          synced_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          track_id?: string | null
+          artist_id?: string | null
+          platform: string
+          period_start: string
+          period_end: string
+          stream_count?: number | null
+          download_count?: number | null
+          gross_revenue?: number | null
+          net_revenue?: number | null
+          currency?: string | null
+          metadata?: Json | null
+          synced_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          track_id?: string | null
+          artist_id?: string | null
+          platform?: string
+          period_start?: string
+          period_end?: string
+          stream_count?: number | null
+          download_count?: number | null
+          gross_revenue?: number | null
+          net_revenue?: number | null
+          currency?: string | null
+          metadata?: Json | null
+          synced_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      royalty_collections: {
+        Row: {
+          id: string
+          artist_id: string | null
+          collection_entity: string
+          period_start: string
+          period_end: string
+          source_type: string | null
+          gross_amount: number | null
+          net_amount: number | null
+          fee_amount: number | null
+          currency: string | null
+          statement_url: string | null
+          statement_file_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          artist_id?: string | null
+          collection_entity: string
+          period_start: string
+          period_end: string
+          source_type?: string | null
+          gross_amount?: number | null
+          net_amount?: number | null
+          fee_amount?: number | null
+          currency?: string | null
+          statement_url?: string | null
+          statement_file_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          artist_id?: string | null
+          collection_entity?: string
+          period_start?: string
+          period_end?: string
+          source_type?: string | null
+          gross_amount?: number | null
+          net_amount?: number | null
+          fee_amount?: number | null
+          currency?: string | null
+          statement_url?: string | null
+          statement_file_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      cwr_exports: {
+        Row: {
+          id: string
+          export_type: string
+          file_name: string | null
+          file_url: string | null
+          record_count: number | null
+          status: string
+          submitted_at: string | null
+          response_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          export_type?: string
+          file_name?: string | null
+          file_url?: string | null
+          record_count?: number | null
+          status?: string
+          submitted_at?: string | null
+          response_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          export_type?: string
+          file_name?: string | null
+          file_url?: string | null
+          record_count?: number | null
+          status?: string
+          submitted_at?: string | null
+          response_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      cwr_export_tracks: {
+        Row: {
+          id: string
+          cwr_export_id: string | null
+          track_id: string | null
+          transaction_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cwr_export_id?: string | null
+          track_id?: string | null
+          transaction_type?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cwr_export_id?: string | null
+          track_id?: string | null
+          transaction_type?: string
+          created_at?: string
+        }
+      }
+      split_rules: {
+        Row: {
+          id: string
+          track_id: string | null
+          platform: string | null
+          writer_name: string
+          writer_share: number | null
+          publisher_share: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          track_id?: string | null
+          platform?: string | null
+          writer_name: string
+          writer_share?: number | null
+          publisher_share?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          track_id?: string | null
+          platform?: string | null
+          writer_name?: string
+          writer_share?: number | null
+          publisher_share?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      track_analysis: {
+        Row: {
+          id: string
+          track_id: string | null
+          bpm: number | null
+          key: string | null
+          key_confidence: number | null
+          energy: string | null
+          energy_score: number | null
+          mood_tags: string[] | null
+          genre: string | null
+          genre_confidence: number | null
+          instrumentation: string[] | null
+          analysis_model: string | null
+          analyzed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          track_id?: string | null
+          bpm?: number | null
+          key?: string | null
+          key_confidence?: number | null
+          energy?: string | null
+          energy_score?: number | null
+          mood_tags?: string[] | null
+          genre?: string | null
+          genre_confidence?: number | null
+          instrumentation?: string[] | null
+          analysis_model?: string | null
+          analyzed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          track_id?: string | null
+          bpm?: number | null
+          key?: string | null
+          key_confidence?: number | null
+          energy?: string | null
+          energy_score?: number | null
+          mood_tags?: string[] | null
+          genre?: string | null
+          genre_confidence?: number | null
+          instrumentation?: string[] | null
+          analysis_model?: string | null
+          analyzed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      metadata_quality: {
+        Row: {
+          artist_id: string
+          total_tracks: number | null
+          fields_filled: Json | null
+          overall_score: number | null
+          calculated_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          artist_id: string
+          total_tracks?: number | null
+          fields_filled?: Json | null
+          overall_score?: number | null
+          calculated_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          artist_id?: string
+          total_tracks?: number | null
+          fields_filled?: Json | null
+          overall_score?: number | null
+          calculated_at?: string | null
+          updated_at?: string | null
+        }
+      }
     }
     Views: {
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      income_summary: {
+        Row: {
+          artist_id: string | null
+          source: string | null
+          source_type: string | null
+          period_start: string | null
+          period_end: string | null
+          gross_amount: number | null
+          net_amount: number | null
+          stream_count: number | null
+          download_count: number | null
+          track_id: string | null
+          created_at: string | null
+        }
+        Args: Record<PropertyKey, never>
+        Returns: Record<string, unknown>
       }
     }
     Enums: {

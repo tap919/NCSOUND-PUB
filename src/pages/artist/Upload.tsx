@@ -53,7 +53,7 @@ export default function Upload() {
           throw new Error('Artist profile not found. Please contact support.');
         }
 
-        const { error } = await supabase.from('tracks').insert({
+        const trackPayload: Record<string, any> = {
             artist_id: artist.id,
             title: formData.title,
             genre: formData.genre || null,
@@ -62,9 +62,28 @@ export default function Upload() {
             owns_publishing: formData.publishingOwnership,
             status: 'metadata_review',
             visibility: 'supervisors_only'
-        } as any);
+        };
+        const { data: track, error: trackError } = await (supabase.from('tracks') as any).insert(trackPayload).select().single();
         
-        if (error) throw error;
+        if (trackError) throw trackError;
+        
+        // Auto-analyze: classify mood/genre via Gemini from the track metadata
+        try {
+          const trackId = (track as any)?.id;
+          if (!trackId) throw new Error('No track ID returned');
+          const bpmVal = parseInt(formData.bpm) || null;
+          await fetch('/api/analyze/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trackId,
+              title: formData.title,
+              bpm: bpmVal,
+              energy: null,
+              instrumentation: null,
+            }),
+          });
+        } catch { /* non-blocking */ }
         
         navigate('/artist/dashboard');
     } catch (err: any) {

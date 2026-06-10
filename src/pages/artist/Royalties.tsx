@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Download, FileText } from 'lucide-react';
+import { DollarSign, Download, FileText, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 
 export default function Royalties() {
   const [statements, setStatements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [artistId, setArtistId] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function Royalties() {
         .single();
       if (ignore) return;
       const artist = artistRow as unknown as { id: string } | null;
-      if (artist) {
+      if (artist) { setArtistId(artist.id);
         const { data } = await supabase
           .from('royalty_statements')
           .select('*, deals(licensee_name)')
@@ -52,8 +53,19 @@ export default function Royalties() {
           <p className="text-4xl font-heading text-orange-500 mt-2">{statements.length}</p>
         </div>
         <div className="bg-neutral-900 border border-neutral-800 p-6 flex flex-col justify-center">
-          <button className="bg-neutral-950 border border-neutral-700 px-6 py-3 font-bold uppercase tracking-widest text-xs text-white hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
-            <DollarSign className="w-4 h-4" /> Connect Stripe
+          <button onClick={async () => {
+            if (!artistId) return;
+            try {
+              const res = await fetch('/api/stripe/connect/onboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ artistId }),
+              });
+              const data = await res.json();
+              if (data.url) window.location.href = data.url;
+            } catch { alert('Failed to connect Stripe'); }
+          }} className="bg-neutral-950 border border-neutral-700 px-6 py-3 font-bold uppercase tracking-widest text-xs text-white hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
+            <ExternalLink className="w-4 h-4" /> Connect Stripe
           </button>
         </div>
       </div>
