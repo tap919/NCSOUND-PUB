@@ -156,6 +156,7 @@ export default function Home() {
       </div>
 
       {/* Featured Catalog */}
+      <div className="bg-neutral-950 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-end mb-12">
             <div>
