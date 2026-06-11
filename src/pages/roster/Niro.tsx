@@ -16,6 +16,8 @@ export default function Niro() {
           { platform: 'instagram', url: 'https://www.instagram.com/mr_niro/' },
           { platform: 'facebook', url: 'https://www.facebook.com/david.irby' },
           { platform: 'youtube', url: 'https://www.youtube.com/@MrNiro' },
+          { platform: 'spotify', url: 'https://open.spotify.com/artist/4E9w0T14Qvi571AgqfOQpv' },
+          { platform: 'tiktok', url: 'https://www.tiktok.com/@mrniro919' },
         ]}
         stats={[
           { label: 'Role', value: 'Recording Artist' },
@@ -33,7 +35,7 @@ export default function Niro() {
         </div>
         <div>
           <h3 className="text-lg font-heading uppercase tracking-wider text-white mb-4">On Spotify</h3>
-          <SpotifyEmbed type="artist" id="5M3vgLWv05thJEkMv6JRRw" height="352" />
+          <SpotifyEmbed type="artist" id="4E9w0T14Qvi571AgqfOQpv" height="352" />
         </div>
       </div>
     </>

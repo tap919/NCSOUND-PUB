@@ -13,12 +13,12 @@ export default function Tap919() {
         links={[
           { platform: 'instagram', url: 'https://www.instagram.com/tap919/' },
           { platform: 'facebook', url: 'https://www.facebook.com/tap919' },
-          { platform: 'youtube', url: 'https://www.youtube.com/@TheUpliftLab' },
-          { platform: 'spotify', url: 'https://open.spotify.com/artist/5M3vgLWv05thJEkMv6JRRw' },
-          { platform: 'soundcloud', url: 'https://soundcloud.com/tap919' },
-          { platform: 'tiktok', url: 'https://www.tiktok.com/@tap919' },
+          { platform: 'youtube', url: 'https://www.youtube.com/@tap919' },
+          { platform: 'spotify', url: 'https://open.spotify.com/artist/6hywq1vKZbYx6CMsWtZ3AQ' },
+          { platform: 'bandcamp', url: 'https://ncsound.bandcamp.com/album/nc-sound-presents-the-remix-vol-1' },
+          { platform: 'tiktok', url: 'https://www.tiktok.com/@ncsound1' },
         ]}
-        bandcampArtist="Tap"
+        bandcampArtist="Tap919"
         stats={[
           { label: 'Role', value: 'Founder/Producer' },
           { label: 'Label', value: 'The Uplift Lab' },
@@ -27,7 +27,7 @@ export default function Tap919() {
       />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <h3 className="text-lg font-heading uppercase tracking-wider text-white mb-4">On Spotify</h3>
-        <SpotifyEmbed type="artist" id="5M3vgLWv05thJEkMv6JRRw" height="352" />
+        <SpotifyEmbed type="artist" id="6hywq1vKZbYx6CMsWtZ3AQ" height="352" />
       </div>
     </>
   );

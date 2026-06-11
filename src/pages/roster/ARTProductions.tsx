@@ -12,6 +12,7 @@ export default function ARTProductions() {
         imageUrl="/assets/pictures/art/art.jpg"
         links={[
           { platform: 'instagram', url: 'https://www.instagram.com/a_r_tproductions_/' },
+          { platform: 'tiktok', url: 'https://www.tiktok.com/@a_r_tprod3letters2dotz' },
         ]}
         stats={[
           { label: 'Genre', value: 'Boom Bap / Trap' },

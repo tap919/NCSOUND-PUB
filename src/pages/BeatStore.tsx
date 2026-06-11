@@ -1,7 +1,6 @@
-import { Play, ShoppingCart, Headphones, Zap, ShieldCheck, Sparkles, Clock, Filter } from 'lucide-react';
+import { ShoppingCart, Headphones, Zap, ShieldCheck, Sparkles, Clock, Filter } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { usePlayerStore } from '../store/usePlayerStore';
 import toast from 'react-hot-toast';
 
 const GENRES = ['All', 'Soul', 'Funk', 'R&B', 'Hip-Hop', 'Trap', 'Drill', 'Jazz', 'Cinematic', 'Electronic'];
@@ -11,7 +10,6 @@ export default function BeatStore() {
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activeGenre, setActiveGenre] = useState('All');
-  const { playTrack, currentTrack, isPlaying } = usePlayerStore();
 
   useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('beat_store_products').select('*').eq('status', 'active').order('created_at', { ascending: false }); if (!ignore && data) setBeats(data); if (!ignore) setLoading(false); })(); return () => { ignore = true; }; }, []);
 
@@ -32,14 +30,6 @@ export default function BeatStore() {
       toast.error(err.message);
     } finally {
       setLoadingId(null);
-    }
-  };
-
-  const handlePlay = (beat: any) => {
-    if (currentTrack?.id === beat.id && isPlaying) {
-      usePlayerStore.getState().pauseTrack();
-    } else if (beat.audio_url) {
-      playTrack({ id: beat.id, title: beat.title, artist: 'Tap919', url: beat.audio_url });
     }
   };
 
@@ -100,8 +90,7 @@ export default function BeatStore() {
           </div>
         ) : (
           <div className="bg-neutral-900 border border-neutral-800 overflow-hidden">
-            <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-8 py-4 border-b border-neutral-800 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
-              <div className="col-span-1"></div>
+            <div className="hidden sm:grid sm:grid-cols-11 gap-4 px-8 py-4 border-b border-neutral-800 text-[10px] font-bold uppercase tracking-widest text-neutral-500">
               <div className="col-span-3">Title</div>
               <div className="col-span-2 text-center">Genre</div>
               <div className="col-span-1 text-center">BPM</div>
@@ -113,17 +102,7 @@ export default function BeatStore() {
             <ul className="divide-y divide-neutral-800">
               {filtered.map((beat) => (
                 <li key={beat.id} className="group hover:bg-white/5 transition-colors">
-                  <div className="grid grid-cols-1 sm:grid-cols-12 items-center gap-4 px-4 sm:px-8 py-4">
-                    <div className="col-span-1 flex justify-center sm:justify-start">
-                      <button onClick={() => handlePlay(beat)}
-                        className="h-10 w-10 bg-neutral-800 group-hover:bg-orange-500 flex items-center justify-center transition-colors">
-                        {currentTrack?.id === beat.id && isPlaying ? (
-                          <span className="w-4 h-4 text-white group-hover:text-black">⏸</span>
-                        ) : (
-                          <Play className="h-4 w-4 text-white group-hover:text-black ml-1" />
-                        )}
-                      </button>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-11 items-center gap-4 px-4 sm:px-8 py-4">
                     <div className="col-span-3 text-center sm:text-left">
                       <h4 className="text-white font-heading tracking-wider text-lg">{beat.title}</h4>
                       <span className="text-[10px] uppercase font-bold tracking-widest text-orange-500">Tap919</span>

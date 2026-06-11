@@ -14,6 +14,7 @@ export default function Soulyghost() {
           { platform: 'instagram', url: 'https://www.instagram.com/thesoulyghost/' },
           { platform: 'spotify', url: 'https://open.spotify.com/artist/5I0MlK68aOYfPGsIdmBrIr' },
           { platform: 'youtube', url: 'https://www.youtube.com/watch?v=g7D-bxoh7fo' },
+          { platform: 'tiktok', url: 'https://www.tiktok.com/@thesoulyghost' },
         ]}
         stats={[
           { label: 'Role', value: 'Recording Artist' },

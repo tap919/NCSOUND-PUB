@@ -33,7 +33,6 @@ const formatTime = (timeInSeconds: number) => {
       barRadius: 2,
       height: 24,
       normalize: true,
-      url: currentTrack?.url || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
     });
 
     let ignore = false;
@@ -101,13 +100,15 @@ const formatTime = (timeInSeconds: number) => {
     }
   };
 
+  if (!currentTrack) return null;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950/95 border-t-2 border-orange-500 px-4 py-2 sm:py-3 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Track Info */}
         <div className="flex items-center gap-3 w-1/3 sm:w-1/4">
           <div className="relative h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0 rounded shadow-md overflow-hidden border border-orange-500/50">
-            <img src={currentTrack?.coverImage || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=200&auto=format&fit=crop"} alt="Cover" className="object-cover w-full h-full grayscale contrast-125" />
+            <img src={currentTrack.coverImage || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c6c?q=80&w=200&auto=format&fit=crop'} alt="Cover" className="object-cover w-full h-full grayscale contrast-125" />
             {isPlaying && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                 <div className="flex gap-0.5 items-end h-4">
@@ -119,8 +120,8 @@ const formatTime = (timeInSeconds: number) => {
             )}
           </div>
           <div className="hidden sm:block truncate">
-            <h4 className="text-white font-heading text-lg sm:text-xl tracking-wider truncate mb-0.5">{currentTrack?.title || 'THE TAKEOVER'}</h4>
-            <p className="text-orange-500 text-xs font-sans uppercase font-bold tracking-widest truncate">{currentTrack?.artist || 'Apex Beats'}</p>
+            <h4 className="text-white font-heading text-lg sm:text-xl tracking-wider truncate mb-0.5">{currentTrack.title}</h4>
+            <p className="text-orange-500 text-xs font-sans uppercase font-bold tracking-widest truncate">{currentTrack.artist}</p>
           </div>
         </div>
 

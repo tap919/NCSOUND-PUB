@@ -76,8 +76,8 @@ export default function About() {
   const artists = [
     {
       name: 'TAP919',
-      genre: 'Producer / Founder',
-      location: 'Raleigh, NC',
+      genre: 'Producer / Rapper',
+      location: 'North Carolina',
       imageUrl: '/assets/pictures/tap919-1.jpg',
       instagram: 'https://www.instagram.com/tap919/',
       rosterSlug: 'tap919'
@@ -102,7 +102,7 @@ export default function About() {
       name: 'The Soulyghost',
       genre: 'Singer / Songwriter',
       location: 'Franklinton, NC',
-      imageUrl: '/assets/pictures/The Soulyghost/souly.jpg',
+      imageUrl: '/assets/pictures/The Soulyghost/souly 2.jpg',
       instagram: 'https://www.instagram.com/thesoulyghost/',
       rosterSlug: 'soulyghost'
     },

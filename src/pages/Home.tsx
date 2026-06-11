@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
-import { ArrowRight, Play, Disc3, Flame, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Disc3, Flame, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { SEO } from '../components/SEO';
 
@@ -9,11 +9,9 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const featuredTracks = [
-    { title: "STREET ANTHEM VOL 1", artist: "Apex Beats", genre: "BOOM BAP", image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&fit=crop" },
-    { title: "NEON NIGHTS", artist: "Raleigh Phantoms", genre: "TRAP SOUL", image: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=400&fit=crop" },
-    { title: "THE GETAWAY", artist: "Kilo & The Mob", genre: "DRILL", image: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=400&fit=crop" }
-  ];
+  const [featuredTracks, setFeaturedTracks] = useState<any[]>([]);
+
+  useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('beat_store_products').select('title, genre, audio_url').eq('status', 'active').order('created_at', { ascending: false }).limit(6); if (!ignore && data) setFeaturedTracks(data.map(b => ({ title: b.title.toUpperCase(), artist: 'Tap919', genre: (b.genre || 'HIP-HOP').toUpperCase(), image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&fit=crop' }))); })(); return () => { ignore = true; }; }, []);
 
   return (
     <div>
@@ -149,9 +147,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
-                    <button className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center text-black hover:scale-110 transition-transform">
-                      <Play className="w-8 h-8 ml-1" />
-                    </button>
+                    <span className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center text-black text-[10px] font-bold uppercase tracking-widest">Sync</span>
                   </div>
                   <div className="absolute top-3 right-3 bg-black/80 border border-orange-500/30 px-2 py-1 text-[10px] font-mono text-orange-500">24h Clearance</div>
                 </div>
