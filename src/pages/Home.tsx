@@ -1,9 +1,11 @@
 import { motion } from 'motion/react';
-import { ArrowRight, Disc3, Flame, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Play, Disc3, Flame, Zap, BrainCircuit, ShieldCheck, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { SEO } from '../components/SEO';
+import SpotifyEmbed from '../components/SpotifyEmbed';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -11,7 +13,22 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [featuredTracks, setFeaturedTracks] = useState<any[]>([]);
 
+  const { playTrack, pause } = usePlayerStore();
+
   useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('beat_store_products').select('title, genre, audio_url').eq('status', 'active').order('created_at', { ascending: false }).limit(6); if (!ignore && data) setFeaturedTracks(data.map(b => ({ title: b.title.toUpperCase(), artist: 'Tap919', genre: (b.genre || 'HIP-HOP').toUpperCase(), image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&fit=crop' }))); })(); return () => { ignore = true; }; }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('tracks').select('id, title, track_files(file_type, storage_url)').limit(1).single();
+      if (data) {
+        const audioUrl = data.track_files?.find((f: any) => f.file_type === 'master')?.storage_url;
+        if (audioUrl) {
+          playTrack({ id: data.id, title: data.title, artist: 'Mr. Niro', url: audioUrl });
+          setTimeout(() => pause(), 100);
+        }
+      }
+    })();
+  }, []);
 
   return (
     <div>
@@ -111,8 +128,34 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Listen Section */}
+      <div className="bg-neutral-950 py-24 sm:py-32 border-t border-neutral-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center px-3 py-1 border border-orange-500/30 bg-orange-500/10 mb-4">
+              <Music className="w-3 h-3 text-orange-500 mr-2" />
+              <span className="text-orange-500 text-[10px] font-bold uppercase tracking-widest">Listen</span>
+            </div>
+            <h2 className="font-graffiti text-4xl sm:text-5xl text-orange-500 mb-2">Hear Our Artists</h2>
+            <p className="font-sans text-neutral-400 max-w-xl mx-auto">Stream Tap919's latest releases on Spotify and explore Niro's full discography.</p>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            <div className="bg-neutral-900 border border-neutral-800 p-4 sm:p-6">
+              <h3 className="text-lg font-heading uppercase tracking-wider text-white mb-4">Tap919 on Spotify</h3>
+              <SpotifyEmbed type="artist" id="6hywq1vKZbYx6CMsWtZ3AQ" height="352" />
+            </div>
+            <div className="bg-neutral-900 border border-neutral-800 p-4 sm:p-6">
+              <h3 className="text-lg font-heading uppercase tracking-wider text-white mb-4">Mr. Niro</h3>
+              <p className="text-neutral-400 font-sans text-sm mb-6">Stream all 3 albums — 1111, Isolated, and Reloaded — 25 tracks. Built for supervisor sync auditioning.</p>
+              <Link to="/niro-music" className="inline-flex items-center gap-2 bg-orange-500 text-black px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-400 transition-colors">
+                <Music className="w-4 h-4" /> Open Music Player
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Featured Catalog */}
-      <div className="bg-neutral-950 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-end mb-12">
             <div>

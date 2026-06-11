@@ -6,8 +6,8 @@ export default function Tap919() {
     <>
       <RosterTemplate
         name="Tap919"
-        tagline="Producer · Founder · NcSound Publishing"
-        role="NcSound Founder & Producer"
+        tagline="Producer / Rapper · Hip Hop, R&B, House · North Carolina"
+        role="Producer / Rapper"
         bio="Terrence Perry II (Tap919) is the founder of NcSound Publishing, a producer, rapper, and curator based in Raleigh, NC. Hosted by DJ Skullator, Tap's catalog blends R&B, hip-hop, and pop remixes into an eclectic signature sound. With a relentless work ethic and a passion for cultivating local talent, Tap919 built NcSound to bridge the gap between street-level producers and elite music supervisors."
         imageUrl="/assets/pictures/tap919-1.jpg"
         links={[
@@ -20,9 +20,9 @@ export default function Tap919() {
         ]}
         bandcampArtist="Tap919"
         stats={[
-          { label: 'Role', value: 'Founder/Producer' },
-          { label: 'Label', value: 'The Uplift Lab' },
-          { label: 'Based', value: 'Raleigh, NC' },
+          { label: 'Genre', value: 'Hip Hop, R&B, House' },
+          { label: 'Role', value: 'Producer / Rapper' },
+          { label: 'Based', value: 'North Carolina' },
         ]}
       />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">

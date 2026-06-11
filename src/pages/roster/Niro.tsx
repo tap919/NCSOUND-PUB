@@ -21,7 +21,7 @@ export default function Niro() {
         ]}
         stats={[
           { label: 'Role', value: 'Recording Artist' },
-          { label: 'Genre', value: 'Hip-Hop / Drill' },
+          { label: 'Genre', value: 'Hip-Hop / Lyricism' },
           { label: 'Based', value: 'North Carolina' },
         ]}
       />
