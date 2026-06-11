@@ -75,18 +75,10 @@ export default function About() {
 
   const artists = [
     {
-      name: 'A.R.T. Productions',
-      genre: 'Producer',
-      location: 'NC',
-      imageUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=600&auto=format&fit=crop',
-      instagram: 'https://www.instagram.com/a_r_tproductions_/',
-      rosterSlug: 'art-productions'
-    },
-    {
       name: 'TAP919',
-      genre: 'Producer',
-      location: 'NC',
-      imageUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=600&auto=format&fit=crop',
+      genre: 'Producer / Founder',
+      location: 'Raleigh, NC',
+      imageUrl: '/assets/pictures/tap919-1.jpg',
       instagram: 'https://www.instagram.com/tap919/',
       rosterSlug: 'tap919'
     },
@@ -94,10 +86,26 @@ export default function About() {
       name: 'Mr. Niro',
       genre: 'Recording Artist',
       location: 'NC',
-      imageUrl: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=600&auto=format&fit=crop',
+      imageUrl: '/assets/pictures/Niro/niro-solo.jpg',
       instagram: 'https://www.instagram.com/mr_niro/',
       rosterSlug: 'niro'
-    }
+    },
+    {
+      name: 'A.R.T. Productions',
+      genre: 'Producer',
+      location: 'NC',
+      imageUrl: '/assets/pictures/art/art.jpg',
+      instagram: 'https://www.instagram.com/a_r_tproductions_/',
+      rosterSlug: 'art-productions'
+    },
+    {
+      name: 'The Soulyghost',
+      genre: 'Singer / Songwriter',
+      location: 'Franklinton, NC',
+      imageUrl: '/assets/pictures/The Soulyghost/souly.jpg',
+      instagram: 'https://www.instagram.com/thesoulyghost/',
+      rosterSlug: 'soulyghost'
+    },
   ];
 
   return (
@@ -158,14 +166,14 @@ export default function About() {
         <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-4 sm:grid-cols-2 mb-32">
           {artists.map((artist) => (
             <article key={artist.name} className="flex flex-col items-start justify-between group">
-              <div className="relative w-full border-2 border-neutral-800 group-hover:border-orange-500 transition-colors bg-neutral-900">
+              <Link to={`/roster/${artist.rosterSlug}`} className="relative w-full border-2 border-neutral-800 group-hover:border-orange-500 transition-colors bg-neutral-900 block">
                 <img
                   src={artist.imageUrl}
                   alt={artist.name}
-                  className="aspect-[4/5] w-full object-cover sm:aspect-[3/4] lg:aspect-[4/5] opacity-60 group-hover:opacity-100 transition-all grayscale group-hover:grayscale-0 duration-500 mix-blend-luminosity hover:mix-blend-normal"
+                  className="aspect-[4/5] w-full object-cover sm:aspect-[3/4] lg:aspect-[4/5] brightness-110 group-hover:brightness-125 transition-all duration-500"
                 />
                 <div className="absolute inset-0 ring-1 ring-inset ring-neutral-800" />
-              </div>
+              </Link>
               <div className="max-w-xl mt-6">
                 <div className="flex items-center gap-x-3 text-[10px] font-bold uppercase tracking-widest">
                   <span className="text-black bg-orange-500 px-2 py-0.5">{artist.genre}</span>

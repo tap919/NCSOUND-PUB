@@ -1,0 +1,814 @@
+[
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\01 Niro The Truth.mp3",
+    "title": "Niro The Truth",
+    "slug": "niro-the-truth",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "confident",
+      "lyrical",
+      "hard"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": "Artist track with vocals A high-energy Hip-Hop track with confident, lyrical, hard vibes.",
+    "file": "niro-the-truth.mp3",
+    "audio_url": "/assets/music/beats/niro-the-truth.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\07 Track 7.wma",
+    "title": "Track Seven",
+    "slug": "track-seven",
+    "genre": "Soul",
+    "mood_tags": [
+      "smooth",
+      "retro"
+    ],
+    "energy": "medium",
+    "sync_suitability": "medium",
+    "description": "WMA format A medium-energy Soul track with smooth, retro vibes.",
+    "file": "track-seven.mp3",
+    "audio_url": "/assets/music/beats/track-seven.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\africa.mp3",
+    "title": "Africa",
+    "slug": "africa",
+    "genre": "Soul",
+    "mood_tags": [
+      "world",
+      "warm",
+      "melodic"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with world, warm, melodic vibes.",
+    "file": "africa.mp3",
+    "audio_url": "/assets/music/beats/africa.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\alan_Current.wav",
+    "title": "Alan Current",
+    "slug": "alan-current",
+    "genre": "Cinematic",
+    "mood_tags": [
+      "ambient",
+      "ethereal"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": "Sound bed A low-energy Cinematic track with ambient, ethereal vibes.",
+    "file": "alan-current.mp3",
+    "audio_url": "/assets/music/beats/alan-current.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\at your best.mp3",
+    "title": "At Your Best",
+    "slug": "at-your-best",
+    "genre": "R&B",
+    "mood_tags": [
+      "romantic",
+      "smooth",
+      "slow"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy R&B track with romantic, smooth, slow vibes.",
+    "file": "at-your-best.mp3",
+    "audio_url": "/assets/music/beats/at-your-best.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\best vox.mp3",
+    "title": "Best Vox",
+    "slug": "best-vox",
+    "genre": "R&B",
+    "mood_tags": [
+      "warm",
+      "vocal",
+      "soulful"
+    ],
+    "energy": "medium",
+    "sync_suitability": "medium",
+    "description": "May contain vocals A medium-energy R&B track with warm, vocal, soulful vibes.",
+    "file": "best-vox.mp3",
+    "audio_url": "/assets/music/beats/best-vox.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\betray.mp3",
+    "title": "Betray",
+    "slug": "betray",
+    "genre": "Soul",
+    "mood_tags": [
+      "emotional",
+      "dark",
+      "melancholic"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy Soul track with emotional, dark, melancholic vibes.",
+    "file": "betray.mp3",
+    "audio_url": "/assets/music/beats/betray.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\better love.mp3",
+    "title": "Better Love",
+    "slug": "better-love",
+    "genre": "R&B",
+    "mood_tags": [
+      "romantic",
+      "smooth",
+      "sweet"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy R&B track with romantic, smooth, sweet vibes.",
+    "file": "better-love.mp3",
+    "audio_url": "/assets/music/beats/better-love.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\big big.mp3",
+    "title": "Big Big",
+    "slug": "big-big",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "booming",
+      "hard",
+      "confident"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with booming, hard, confident vibes.",
+    "file": "big-big.mp3",
+    "audio_url": "/assets/music/beats/big-big.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\big brah s.mp3",
+    "title": "Big Brah S",
+    "slug": "big-brah-s",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "aggressive"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, aggressive vibes.",
+    "file": "big-brah-s.mp3",
+    "audio_url": "/assets/music/beats/big-brah-s.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\big brah.mp3",
+    "title": "Big Brah",
+    "slug": "big-brah",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "bold"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, bold vibes.",
+    "file": "big-brah.mp3",
+    "audio_url": "/assets/music/beats/big-brah.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Big Gas.mp3",
+    "title": "Big Gas",
+    "slug": "big-gas",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "bouncy",
+      "confident",
+      "energy"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with bouncy, confident, energy vibes.",
+    "file": "big-gas.mp3",
+    "audio_url": "/assets/music/beats/big-gas.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Boombap soul.mp3",
+    "title": "Boombap Soul",
+    "slug": "boombap-soul",
+    "genre": "Soul",
+    "mood_tags": [
+      "boom-bap",
+      "classic",
+      "soulful"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with boom-bap, classic, soulful vibes.",
+    "file": "boombap-soul.mp3",
+    "audio_url": "/assets/music/beats/boombap-soul.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\bounce horror.mp3",
+    "title": "Bounce Horror",
+    "slug": "bounce-horror",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "dark",
+      "bouncy",
+      "creepy"
+    ],
+    "energy": "high",
+    "sync_suitability": "high",
+    "description": " A high-energy Hip-Hop track with dark, bouncy, creepy vibes.",
+    "file": "bounce-horror.mp3",
+    "audio_url": "/assets/music/beats/bounce-horror.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\chaka type.wav",
+    "title": "Chaka Type",
+    "slug": "chaka-type",
+    "genre": "Funk",
+    "mood_tags": [
+      "funk",
+      "groovy",
+      "dance"
+    ],
+    "energy": "high",
+    "sync_suitability": "high",
+    "description": " A high-energy Funk track with funk, groovy, dance vibes.",
+    "file": "chaka-type.mp3",
+    "audio_url": "/assets/music/beats/chaka-type.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\chasin paper.wav",
+    "title": "Chasin Paper",
+    "slug": "chasin-paper",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "ambitious",
+      "grind"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, ambitious, grind vibes.",
+    "file": "chasin-paper.mp3",
+    "audio_url": "/assets/music/beats/chasin-paper.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\cnn cpu.mp3",
+    "title": "CNN CPU",
+    "slug": "cnn-cpu",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "news-inspired",
+      "intense"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, news-inspired, intense vibes.",
+    "file": "cnn-cpu.mp3",
+    "audio_url": "/assets/music/beats/cnn-cpu.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\dreamwave 9150.mp3",
+    "title": "Dreamwave 9150",
+    "slug": "dreamwave-9150",
+    "genre": "Electronic",
+    "mood_tags": [
+      "dreamy",
+      "synth",
+      "retro-futuristic"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Electronic track with dreamy, synth, retro-futuristic vibes.",
+    "file": "dreamwave-9150.mp3",
+    "audio_url": "/assets/music/beats/dreamwave-9150.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\elictric bap.mp3",
+    "title": "Elictric Bap",
+    "slug": "elictric-bap",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "boom-bap",
+      "gritty",
+      "hard"
+    ],
+    "energy": "high",
+    "sync_suitability": "high",
+    "description": " A high-energy Hip-Hop track with boom-bap, gritty, hard vibes.",
+    "file": "elictric-bap.mp3",
+    "audio_url": "/assets/music/beats/elictric-bap.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\empo.mp3",
+    "title": "Empo",
+    "slug": "empo",
+    "genre": "Soul",
+    "mood_tags": [
+      "soulful",
+      "smooth",
+      "warm"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with soulful, smooth, warm vibes.",
+    "file": "empo.mp3",
+    "audio_url": "/assets/music/beats/empo.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Feelin Free inst.wav",
+    "title": "Feelin Free",
+    "slug": "feelin-free",
+    "genre": "Soul",
+    "mood_tags": [
+      "free",
+      "uplifting",
+      "warm"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with free, uplifting, warm vibes.",
+    "file": "feelin-free.mp3",
+    "audio_url": "/assets/music/beats/feelin-free.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\feels.mp3",
+    "title": "Feels",
+    "slug": "feels",
+    "genre": "R&B",
+    "mood_tags": [
+      "emotional",
+      "sad",
+      "vulnerable"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy R&B track with emotional, sad, vulnerable vibes.",
+    "file": "feels.mp3",
+    "audio_url": "/assets/music/beats/feels.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\From sand.mp3",
+    "title": "From Sand",
+    "slug": "from-sand",
+    "genre": "Cinematic",
+    "mood_tags": [
+      "ethereal",
+      "atmospheric",
+      "desert"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy Cinematic track with ethereal, atmospheric, desert vibes.",
+    "file": "from-sand.mp3",
+    "audio_url": "/assets/music/beats/from-sand.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\good sat 1.mp3",
+    "title": "Good Sat",
+    "slug": "good-sat",
+    "genre": "Soul",
+    "mood_tags": [
+      "chill",
+      "saturday",
+      "laid-back"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with chill, saturday, laid-back vibes.",
+    "file": "good-sat.mp3",
+    "audio_url": "/assets/music/beats/good-sat.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\h START.mp3",
+    "title": "H Start",
+    "slug": "h-start",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "intro",
+      "energetic"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, intro, energetic vibes.",
+    "file": "h-start.mp3",
+    "audio_url": "/assets/music/beats/h-start.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Harmony%20High.mp3",
+    "title": "Harmony High",
+    "slug": "harmony-high",
+    "genre": "R&B",
+    "mood_tags": [
+      "harmonious",
+      "smooth",
+      "sweet"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy R&B track with harmonious, smooth, sweet vibes.",
+    "file": "harmony-high.mp3",
+    "audio_url": "/assets/music/beats/harmony-high.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\harvest.mp3",
+    "title": "Harvest",
+    "slug": "harvest",
+    "genre": "Soul",
+    "mood_tags": [
+      "warm",
+      "earthy",
+      "organic"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with warm, earthy, organic vibes.",
+    "file": "harvest.mp3",
+    "audio_url": "/assets/music/beats/harvest.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Heavy ft Niro.mp3",
+    "title": "Heavy (ft. Niro)",
+    "slug": "heavy-ft-niro",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "heavy"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": "May have vocals from Niro A high-energy Hip-Hop track with hard, heavy vibes.",
+    "file": "heavy-ft-niro.mp3",
+    "audio_url": "/assets/music/beats/heavy-ft-niro.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\iso beat.mp3",
+    "title": "Iso Beat",
+    "slug": "iso-beat",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "minimal",
+      "hard",
+      "isolated"
+    ],
+    "energy": "medium",
+    "sync_suitability": "medium",
+    "description": " A medium-energy Hip-Hop track with minimal, hard, isolated vibes.",
+    "file": "iso-beat.mp3",
+    "audio_url": "/assets/music/beats/iso-beat.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\lavish.mp3",
+    "title": "Lavish",
+    "slug": "lavish",
+    "genre": "Soul",
+    "mood_tags": [
+      "luxurious",
+      "smooth",
+      "rich"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with luxurious, smooth, rich vibes.",
+    "file": "lavish.mp3",
+    "audio_url": "/assets/music/beats/lavish.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\lay down.mp3",
+    "title": "Lay Down",
+    "slug": "lay-down",
+    "genre": "Soul",
+    "mood_tags": [
+      "smooth",
+      "slow",
+      "laid-back"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy Soul track with smooth, slow, laid-back vibes.",
+    "file": "lay-down.mp3",
+    "audio_url": "/assets/music/beats/lay-down.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Life_Is_Hard.mp3",
+    "title": "Life Is Hard",
+    "slug": "life-is-hard",
+    "genre": "Soul",
+    "mood_tags": [
+      "struggle",
+      "emotional",
+      "raw"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy Soul track with struggle, emotional, raw vibes.",
+    "file": "life-is-hard.mp3",
+    "audio_url": "/assets/music/beats/life-is-hard.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Like Honey-Pink Flowers.mp3",
+    "title": "Like Honey Pink Flowers",
+    "slug": "like-honey-pink-flowers",
+    "genre": "R&B",
+    "mood_tags": [
+      "sweet",
+      "romantic",
+      "soft"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy R&B track with sweet, romantic, soft vibes.",
+    "file": "like-honey-pink-flowers.mp3",
+    "audio_url": "/assets/music/beats/like-honey-pink-flowers.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\lil banger.mp3",
+    "title": "Lil Banger",
+    "slug": "lil-banger",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "bouncy",
+      "party"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, bouncy, party vibes.",
+    "file": "lil-banger.mp3",
+    "audio_url": "/assets/music/beats/lil-banger.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\love might.wav",
+    "title": "Love Might",
+    "slug": "love-might",
+    "genre": "R&B",
+    "mood_tags": [
+      "romantic",
+      "slow",
+      "emotional"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy R&B track with romantic, slow, emotional vibes.",
+    "file": "love-might.mp3",
+    "audio_url": "/assets/music/beats/love-might.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\new live crew.mp3",
+    "title": "New Live Crew",
+    "slug": "new-live-crew",
+    "genre": "Soul",
+    "mood_tags": [
+      "live",
+      "funky",
+      "groovy"
+    ],
+    "energy": "high",
+    "sync_suitability": "high",
+    "description": " A high-energy Soul track with live, funky, groovy vibes.",
+    "file": "new-live-crew.mp3",
+    "audio_url": "/assets/music/beats/new-live-crew.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\O Digga 1.mp3",
+    "title": "O Digga One",
+    "slug": "o-digga-one",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "hard",
+      "aggressive",
+      "drill"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with hard, aggressive, drill vibes.",
+    "file": "o-digga-one.mp3",
+    "audio_url": "/assets/music/beats/o-digga-one.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\ohhhhhhh.wav",
+    "title": "Ohhhhhhh",
+    "slug": "ohhhhhhh",
+    "genre": "Soul",
+    "mood_tags": [
+      "vocal",
+      "soulful",
+      "emotional"
+    ],
+    "energy": "medium",
+    "sync_suitability": "medium",
+    "description": "Vocal-heavy track A medium-energy Soul track with vocal, soulful, emotional vibes.",
+    "file": "ohhhhhhh.mp3",
+    "audio_url": "/assets/music/beats/ohhhhhhh.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\past the shadows.m4a",
+    "title": "Past the Shadows",
+    "slug": "past-the-shadows",
+    "genre": "Cinematic",
+    "mood_tags": [
+      "dark",
+      "atmospheric",
+      "mysterious"
+    ],
+    "energy": "low",
+    "sync_suitability": "high",
+    "description": " A low-energy Cinematic track with dark, atmospheric, mysterious vibes.",
+    "file": "past-the-shadows.mp3",
+    "audio_url": "/assets/music/beats/past-the-shadows.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\ppp loan.mp3",
+    "title": "PPP Loan",
+    "slug": "ppp-loan",
+    "genre": "Hip-Hop",
+    "mood_tags": [
+      "grind",
+      "hustle",
+      "hard"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Hip-Hop track with grind, hustle, hard vibes.",
+    "file": "ppp-loan.mp3",
+    "audio_url": "/assets/music/beats/ppp-loan.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Redemption.mp3",
+    "title": "Redemption",
+    "slug": "redemption",
+    "genre": "Soul",
+    "mood_tags": [
+      "redemption",
+      "emotional",
+      "hopeful"
+    ],
+    "energy": "medium",
+    "sync_suitability": "high",
+    "description": " A medium-energy Soul track with redemption, emotional, hopeful vibes.",
+    "file": "redemption.mp3",
+    "audio_url": "/assets/music/beats/redemption.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\Robot Walk.wav",
+    "title": "Robot Walk",
+    "slug": "robot-walk",
+    "genre": "Electronic",
+    "mood_tags": [
+      "robotic",
+      "glitch",
+      "futuristic"
+    ],
+    "energy": "high",
+    "sync_suitability": "high",
+    "description": " A high-energy Electronic track with robotic, glitch, futuristic vibes.",
+    "file": "robot-walk.mp3",
+    "audio_url": "/assets/music/beats/robot-walk.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  },
+  {
+    "sourceFile": "C:\\Users\\User\\Desktop\\NCSOUND-PUB-main\\temp\\drive-beats\\soul thuggin blackstorm.mp3",
+    "title": "Soul Thuggin Blackstorm",
+    "slug": "soul-thuggin-blackstorm",
+    "genre": "Soul",
+    "mood_tags": [
+      "soulful",
+      "hard",
+      "thug"
+    ],
+    "energy": "high",
+    "sync_suitability": "medium",
+    "description": " A high-energy Soul track with soulful, hard, thug vibes.",
+    "file": "soul-thuggin-blackstorm.mp3",
+    "audio_url": "/assets/music/beats/soul-thuggin-blackstorm.mp3",
+    "is_first_wave": true,
+    "first_wave_price": 1,
+    "split_percentage": 20
+  }
+]

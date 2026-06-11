@@ -24,7 +24,8 @@ import {
   Radio,
   DollarSign,
   ScanText,
-  Upload
+  Upload,
+  Cpu
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -111,9 +112,12 @@ export default function AdminDashboard() {
              <Link to="/admin/license-requests" className="w-full flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-transparent text-neutral-400 hover:text-orange-500 hover:bg-neutral-800">
                <FileText className="w-4 h-4 mr-3" /> License Requests
              </Link>
-             <Link to="/admin/briefs" className="w-full flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-transparent text-neutral-400 hover:text-orange-500 hover:bg-neutral-800">
-               <BrainCircuit className="w-4 h-4 mr-3" /> Briefs & Matching
-             </Link>
+              <Link to="/admin/briefs" className="w-full flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-transparent text-neutral-400 hover:text-orange-500 hover:bg-neutral-800">
+                <BrainCircuit className="w-4 h-4 mr-3" /> Briefs & Matching
+              </Link>
+              <Link to="/admin/control" className="w-full flex items-center px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-transparent text-neutral-400 hover:text-orange-500 hover:bg-neutral-800">
+                <Cpu className="w-4 h-4 mr-3" /> Control Center
+              </Link>
            </div>
 
            <div className="pt-4 mt-2 border-t border-neutral-800/50">

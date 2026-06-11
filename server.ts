@@ -24,7 +24,10 @@ function missingFields(body: any, fields: string[]): string | null {
 }
 
 async function startServer() {
-  if (!process.env.NODE_ENV) process.env.NODE_ENV = 'production';
+  // NODE_ENV must be set by the environment — never default to production here.
+  // Vite's dev/prod behavior depends on it. Set via npm script or .env.
+  // production: npm run build && npm start (NODE_ENV=production)
+  // development: npm run dev (NODE_ENV=development)
 
   // Env validation — warn at startup, hard block critical paths at runtime
   const ENV_CHECKS = [
@@ -66,6 +69,10 @@ async function startServer() {
     origin: process.env.NODE_ENV === 'production' ? process.env.APP_URL || '' : '*',
     methods: ['GET', 'POST', 'OPTIONS'],
   }));
+
+  // Static assets — direct file serving using fs (works with Vite dev middleware)
+  // Serve assets/ directory directly (outside dist) so images never need copying
+  app.use('/assets', express.static(path.join(process.cwd(), 'assets'), { maxAge: '1d' }));
 
   // Security headers
   app.use((_req, res, next) => {
@@ -2086,6 +2093,240 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         total_matches: totalMatches,
       });
     } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
+  });
+
+  // ================================================================
+  // PLAYLIST SUBMISSION — Analyzer & Credits
+  // ================================================================
+
+  // Analyze a playlist submission with Gemini
+  app.post("/api/playlist/analyze", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'AI service not configured' });
+
+      const { title, artist, genre, bpm, mood_tags, description } = req.body;
+      if (!title) return res.status(400).json({ error: 'title required' });
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey });
+
+      const prompt = `You are a music quality reviewer for NcSound Publishing's playlist. Analyze this track submission:
+
+Title: "${title}"
+Artist: "${artist || 'Unknown'}"
+Genre: ${genre || 'Unknown'}
+BPM: ${bpm || 'Unknown'}
+Mood: ${(mood_tags || []).join(', ') || 'Unknown'}
+Description: ${description || 'None provided'}
+
+Rate this track 0-100 on: production_quality, originality, mixing, arrangement, commercial_potential.
+Provide brief constructive feedback (2-3 sentences) on how to improve.
+Also suggest 3 similar artists for reference.
+
+Respond with ONLY a JSON object:
+{
+  "production_quality": 0-100,
+  "originality": 0-100,
+  "mixing": 0-100,
+  "arrangement": 0-100,
+  "commercial_potential": 0-100,
+  "overall_score": 0-100,
+  "feedback": "constructive feedback here",
+  "similar_artists": ["artist1", "artist2", "artist3"]
+}`;
+
+      const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+      const text = response.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return res.status(500).json({ error: 'Failed to parse analysis' });
+
+      res.json(JSON.parse(jsonMatch[0]));
+    } catch (err: any) {
+      console.error('Playlist analysis error:', err.message);
+      res.status(500).json({ error: sanitizeError(err) });
+    }
+  });
+
+  // Submit a track to the playlist
+  app.post("/api/playlist/submit", async (req, res) => {
+    try {
+      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
+      const { userId, artistName, trackTitle, genre, bpm, mood_tags, description, quality_score, quality_feedback } = req.body;
+      if (!userId || !artistName || !trackTitle) return res.status(400).json({ error: 'userId, artistName, trackTitle required' });
+
+      // Check credits
+      const month = new Date().toISOString().substring(0, 7);
+      const { data: credits } = await supabaseClient.from('submission_credits').select('*').eq('user_id', userId).single();
+      if (credits) {
+        if (credits.month !== month) {
+          // Reset for new month
+          await supabaseClient.from('submission_credits').update({ credits_used: 0, month }).eq('user_id', userId);
+        } else if (credits.credits_used >= credits.monthly_limit) {
+          return res.status(429).json({ error: 'Monthly submission limit reached. Upgrade for more credits.' });
+        }
+      }
+
+      const { data, error } = await supabaseClient.from('playlist_submissions').insert({
+        user_id: userId, artist_name: artistName, track_title: trackTitle,
+        genre, bpm, mood_tags, description, quality_score, quality_feedback,
+        status: quality_score && quality_score >= 50 ? 'approved' : 'pending',
+      }).select().single();
+
+      if (error) throw error;
+
+      // Increment credits
+      if (credits) {
+        await supabaseClient.from('submission_credits').update({ credits_used: (credits.credits_used || 0) + 1 }).eq('user_id', userId);
+      } else {
+        await supabaseClient.from('submission_credits').insert({ user_id: userId, credits_used: 1, month });
+      }
+
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: sanitizeError(err) });
+    }
+  });
+
+  // Get remaining credits
+  app.get("/api/playlist/credits/:userId", async (req, res) => {
+    try {
+      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
+      const { data } = await supabaseClient.from('submission_credits').select('*').eq('user_id', req.params.userId).single();
+      const month = new Date().toISOString().substring(0, 7);
+      if (!data || data.month !== month) {
+        return res.json({ monthly_limit: 3, credits_used: 0, remaining: 3, month });
+      }
+      res.json({
+        monthly_limit: data.monthly_limit,
+        credits_used: data.credits_used,
+        remaining: data.monthly_limit - (data.credits_used || 0),
+        month: data.month,
+      });
+    } catch { res.json({ monthly_limit: 3, credits_used: 0, remaining: 3 }); }
+  });
+
+  // ================================================================
+  // EXCLUSIVE LICENSE OFFERS
+  // ================================================================
+
+  // Create an exclusive license offer
+  app.post("/api/license/exclusive-offer", async (req, res) => {
+    try {
+      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
+      const { track_id, artist_id, licensee_name, offer_amount, pro_split, mechanical_split, publishing_split, terms } = req.body;
+      if (!track_id || !artist_id || !licensee_name || !offer_amount) {
+        return res.status(400).json({ error: 'track_id, artist_id, licensee_name, offer_amount required' });
+      }
+
+      const amount = parseFloat(offer_amount);
+      const ncsoundCut = amount * 0.20;
+      const artistPayout = amount * 0.80;
+
+      const { data, error } = await supabaseClient.from('exclusive_offers').insert({
+        track_id, artist_id, licensee_name, offer_amount: amount,
+        ncsound_cut: ncsoundCut, artist_payout: artistPayout,
+        pro_split: pro_split || 50, mechanical_split: mechanical_split || 50,
+        publishing_split: publishing_split || 50, terms,
+        status: 'pending',
+      }).select().single();
+
+      if (error) throw error;
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: sanitizeError(err) });
+    }
+  });
+
+  // Get exclusive offers for a track
+  app.get("/api/license/exclusive-offers/:trackId", async (req, res) => {
+    try {
+      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
+      const { data } = await supabaseClient.from('exclusive_offers').select('*').eq('track_id', req.params.trackId).order('created_at', { ascending: false });
+      res.json(data || []);
+    } catch { res.json([]); }
+  });
+
+  // ================================================================
+  // NCSOUND STORY — Graphic Novel Download
+  // ================================================================
+  app.get("/api/story/download", async (req, res) => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>NcSound Story — Volume I</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e5e5e5; font-family: 'Courier Prime', monospace; padding: 40px; }
+  .page { max-width: 800px; margin: 0 auto 60px; padding: 40px; border: 1px solid #1a1a1a; background: #0d0d0d; position: relative; page-break-after: always; }
+  h1 { font-size: 48px; text-transform: uppercase; letter-spacing: 4px; color: #fff; margin-bottom: 10px; }
+  .subtitle { font-size: 32px; color: #f97316; margin-bottom: 30px; }
+  .chapter-label { font-size: 11px; letter-spacing: 3px; color: #f97316; text-transform: uppercase; margin-bottom: 10px; }
+  h2 { font-size: 28px; text-transform: uppercase; letter-spacing: 2px; color: #fff; margin-bottom: 20px; }
+  p { font-size: 14px; line-height: 1.8; color: #aaa; margin-bottom: 16px; }
+  .panel { border-left: 2px solid #f97316; padding-left: 20px; margin: 20px 0; }
+  .page-num { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #1a1a1a; font-size: 11px; color: #444; }
+  .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #555; }
+  .covernote { color: #666; font-size: 12px; text-align: center; margin-top: 40px; }
+  .divider { text-align: center; color: #f97316; margin: 30px 0; font-size: 20px; }
+  @media print { body { padding: 0; } .page { border: none; page-break-after: always; } }
+</style></head><body>
+<div class="page">
+  <h1>NcSound</h1>
+  <div class="subtitle">Volume I: The Foundation</div>
+  <div class="covernote">The Origin Story<br>NcSound Publishing est. 2024<br><br>Raleigh, North Carolina</div>
+</div>
+<div class="page">
+  <div class="chapter-label">Prologue</div>
+  <h2>The Foundation</h2>
+  <p>Every empire starts with a single brick. NcSound Publishing was born not in a boardroom, but in the bedroom of a producer who refused to accept the limitations placed on independent artists. In Raleigh, North Carolina — a city caught between the hip-hop Mecca of New York and the trap dynasty of Atlanta — a new sound was waiting to be forged.</p>
+  <p>Terrence Perry II, known in the streets and on the boards as Tap919, had spent years watching talented producers get exploited. Beats sold for pocket change. Publishing signed away for nothing. Sync placements that could change lives going to the same five major-label acts.</p>
+  <p>The system wasn't broken — it was designed that way. And someone had to redesign it.</p>
+  <div class="page-num">— 1 —</div>
+</div>
+<div class="page">
+  <div class="chapter-label">Chapter I</div>
+  <h2>The Beat Builder</h2>
+  <p>Tap919 cut his teeth in the NC underground, building beats in FL Studio until 3 AM, layering 808s and samples into something that felt like the future. His early work caught the attention of DJ Skullator, a veteran curator with ears tuned to what's next.</p>
+  <p>Together, they started building a network. Not just of producers, but of artists, engineers, videographers, and most importantly — music supervisors looking for fresh sounds.</p>
+  <div class="panel">The vision was clear: create a publishing platform that treats artists like partners, not products. Non-exclusive deals. 80/20 splits in favor of the creator. And a pipeline directly to the people who place music in TV, film, and advertising.</div>
+  <p>No one was doing this for the independent producer. Until now.</p>
+  <div class="page-num">— 2 —</div>
+</div>
+<div class="page">
+  <div class="chapter-label">Chapter II</div>
+  <h2>The Roster</h2>
+  <p>The roster grew organically. Mr. Niro (David Irby) brought raw lyricism and street narratives that demanded to be heard. A.R.T. Productions brought the hard-hitting boom bap that makes NC hip-hop distinct. Each artist added a new color to the palette.</p>
+  <p>But NcSound wasn't just about collecting talent — it was about activating it. Every track uploaded to the platform became eligible for sync licensing. Every producer got access to a growing network of music supervisors. Every beat sold in the store came with automatic placement opportunity.</p>
+  <p>The Roster wasn't a list. It was a movement.</p>
+  <div class="page-num">— 3 —</div>
+</div>
+<div class="page">
+  <div class="chapter-label">Chapter III</div>
+  <h2>The Technology</h2>
+  <p>NcSound Publishing was built from the ground up as a technology-first publishing platform. Not just a website — a complete operating system for the independent musician's career.</p>
+  <p>AI-powered brief matching connects producer catalogs to supervisor needs in real-time. Automated royalty tracking aggregates income across all platforms. CWR generation streamlines PRO registration. Stripe Connect enables instant payouts. The platform handles the business so artists can focus on the music.</p>
+  <p>It's publishing administration reimagined for the 21st century — where AI handles the paperwork and humans handle the creativity.</p>
+  <div class="page-num">— 4 —</div>
+</div>
+<div class="page">
+  <div class="chapter-label">Chapter IV</div>
+  <h2>The Future</h2>
+  <p>The story of NcSound is still being written. With a growing catalog of tracks, a network of supervisors spanning film, television, and advertising, and technology that gets smarter every day — the foundation is laid for something bigger.</p>
+  <p>The goal: become the go-to publishing partner for independent producers across the Southeast and beyond. Build a catalog that competes with major publishers while keeping artist ownership intact. Prove that the independent model isn't just viable — it's superior.</p>
+  <p>This isn't just a publishing company. It's proof that the streets can build their own system. Their own infrastructure. Their own future.</p>
+  <p>The sound of North Carolina is about to be heard everywhere.</p>
+  <div class="page-num">— 5 —</div>
+</div>
+<div class="page" style="text-align:center">
+  <p style="font-size:24px;color:#f97316;margin-top:60px">To Be Continued...</p>
+  <p style="margin-top:20px;color:#555">NcSound Publishing — Raleigh, NC</p>
+  <p style="margin-top:40px;color:#444;font-size:11px">ncsound.com</p>
+</div>
+</body></html>`;
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename="ncsound-story-volume-I.html"');
+    res.send(html);
   });
 
   // Vite middleware for development

@@ -25,7 +25,7 @@ export function Layout() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
               <Link to="/" className="flex items-center gap-2 group">
-                <Disc3 className="h-8 w-8 text-orange-500 group-hover:rotate-12 transition-transform" />
+                <img src="/assets/brand/ncsound-logo.jpg" alt="NcSound" className="h-8 w-auto object-contain" />
                 <span className="text-2xl font-heading font-bold tracking-wider text-white uppercase">NcSound <span className="text-neutral-500 font-medium">Pub</span></span>
               </Link>
             </div>

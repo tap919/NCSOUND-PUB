@@ -29,6 +29,7 @@ const platformIcons: Record<string, typeof Globe> = {
   instagram: Camera,
   twitter: MessageCircle,
   tiktok: MessageCircle,
+  facebook: Globe,
   bandcamp: Headphones,
   website: Globe,
 };
@@ -41,6 +42,7 @@ const platformLabels: Record<string, string> = {
   instagram: 'Instagram',
   twitter: 'Twitter / X',
   tiktok: 'TikTok',
+  facebook: 'Facebook',
   bandcamp: 'Bandcamp',
   website: 'Website',
 };
@@ -89,8 +91,8 @@ export function RosterTemplate({
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.2 }}>
             <div className="relative border-2 border-neutral-800 bg-neutral-900">
-              <div className="absolute -inset-1 bg-orange-500/10 blur-xl" />
-              <img src={displayImage} alt={name} className="relative w-full aspect-[4/5] object-cover grayscale contrast-125" />
+              <div className="absolute -inset-1 bg-orange-500/5 blur-lg" />
+              <img src={displayImage} alt={name} className="relative w-full aspect-[4/5] object-cover brightness-110" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
                 <p className="text-orange-500 font-graffiti text-3xl">{name}</p>
                 <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest">NcSound Publishing</p>
