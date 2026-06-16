@@ -4,15 +4,17 @@ import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          order: () => ({
-            then: (cb: (val: any) => void) => cb({ data: [], error: null }),
-          }),
-        }),
-      }),
-    }),
+    from: () => {
+      const chain: any = {};
+      chain.then = (cb: (val: any) => void) => cb({ data: [], error: null });
+      const handler: ProxyHandler<any> = {
+        get(_target, prop) {
+          if (prop === 'then') return chain.then;
+          return () => new Proxy(chain, handler);
+        },
+      };
+      return new Proxy(chain, handler);
+    },
   },
 }));
 
