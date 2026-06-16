@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import AdminDashboard from '../Dashboard';
 
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'admin-id', role: 'admin' }, signOut: vi.fn() }),
@@ -17,8 +18,6 @@ beforeEach(() => {
 afterAll(() => {
   vi.unstubAllGlobals();
 });
-
-import AdminDashboard from '../../../pages/admin/Dashboard';
 
 function renderDashboard() {
   return render(

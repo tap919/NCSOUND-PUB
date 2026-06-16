@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BandcampDiscography } from '../BandcampDiscography';
 
@@ -15,6 +15,10 @@ describe('BandcampDiscography', () => {
           }),
       }),
     );
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders loading skeleton initially', () => {

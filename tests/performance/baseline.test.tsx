@@ -52,6 +52,14 @@ describe('Performance Baselines', () => {
 describe('Component Render Performance', () => {
   it('SEO renders in under 200ms', async () => {
     const { SEO } = await import('../../src/components/SEO');
+    // Warm-up: first render pays React/Helmet initialization cost.
+    render(
+      <HelmetProvider>
+        <MemoryRouter>
+          <SEO title="Warm-up" description="Test" />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
     const start = performance.now();
     render(
       <HelmetProvider>

@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { BriefMatcher } from '../../components/BriefMatcher';
 
 let mockTracks: any[] = [];
 
@@ -32,8 +33,6 @@ vi.mock('../../../lib/embeddings', () => ({
   rankBySimilarity: () => [],
 }));
 
-import { BriefMatcher } from '../../components/BriefMatcher';
-
 describe('BriefMatcher', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,6 +44,10 @@ describe('BriefMatcher', () => {
         json: () => Promise.resolve({ text: '[]' }),
       })
     );
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders without crashing', () => {
