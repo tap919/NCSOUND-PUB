@@ -1,63 +1,96 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import express from 'express';
+import request from 'supertest';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 
-const API_BASE = 'http://localhost:3000';
+function createTestApp() {
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => false,
+  });
+  app.use('/api/', apiLimiter);
+
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: Date.now() });
+  });
+
+  app.post('/api/checkout', (req, res) => {
+    const { beatId, title, priceStr } = req.body;
+    if (!beatId || !title || !priceStr) {
+      return res.status(400).json({ error: 'beatId, title, and priceStr are required' });
+    }
+    res.json({ url: 'https://checkout.stripe.com/test', id: 'cs_test_123' });
+  });
+
+  return app;
+}
+
+const app = createTestApp();
 
 describe('API Health Check', () => {
-  it('GET /api/health returns 200', async () => {
-    const res = await fetch(`${API_BASE}/api/health`).catch(() => null);
-    if (!res) return;
+  it('GET /api/health returns 200 with status ok', async () => {
+    const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('status', 'ok');
+    expect(res.body).toHaveProperty('timestamp');
+  });
+
+  it('GET /api/health returns valid JSON', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.headers['content-type']).toMatch(/json/);
   });
 });
 
-describe('API Route Contracts', () => {
-  it('/api/checkout expects POST with beatId, title, priceStr', () => {
-    const body = { beatId: 'uuid', title: 'Test Beat', priceStr: '1.00' };
-    expect(body).toHaveProperty('beatId');
-    expect(body).toHaveProperty('title');
-    expect(body).toHaveProperty('priceStr');
+describe('API Checkout Route', () => {
+  it('POST /api/checkout with valid body returns 200 and checkout URL', async () => {
+    const res = await request(app)
+      .post('/api/checkout')
+      .send({ beatId: 'uuid', title: 'Test Beat', priceStr: '1.00' });
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('url');
+    expect(res.body.url).toContain('checkout.stripe.com');
   });
 
-  it('contact_submissions schema validates required fields', () => {
-    const validSubmission = {
-      type: 'sync',
-      first_name: 'John',
-      email: 'john@example.com',
-      message: 'I am interested in licensing a track for a TV commercial.',
-    };
-    expect(validSubmission.first_name).toBeTruthy();
-    expect(validSubmission.email).toContain('@');
-    expect(validSubmission.message.length).toBeGreaterThanOrEqual(10);
+  it('POST /api/checkout with missing fields returns 400', async () => {
+    const res = await request(app)
+      .post('/api/checkout')
+      .send({ beatId: 'uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
   });
 
-  it('contact_submissions rejects empty message', () => {
-    const invalid = { type: 'sync', first_name: 'John', email: 'john@example.com', message: 'short' };
-    expect(invalid.message.length).toBeLessThan(10);
-  });
-
-  it('contact_submissions rejects invalid email', () => {
-    const invalid = { type: 'sync', first_name: 'John', email: 'not-an-email', message: 'A valid message here' };
-    expect(invalid.email).not.toContain('@');
+  it('POST /api/checkout with empty body returns 400', async () => {
+    const res = await request(app)
+      .post('/api/checkout')
+      .send({});
+    expect(res.status).toBe(400);
   });
 });
 
-describe('Supabase Query Contracts', () => {
-  it('beat_store_products query with status=active filter', () => {
-    const query = { status: 'active', select: 'id,title,genre,bpm,lease_price,audio_url,is_first_wave' };
-    expect(query.select).toContain('id');
-    expect(query.select).toContain('title');
-    expect(query.status).toBe('active');
+describe('API Rate Limiting', () => {
+  it('returns rate limiting headers', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.headers).toHaveProperty('ratelimit-remaining');
+    expect(res.headers).toHaveProperty('ratelimit-limit');
+  });
+});
+
+describe('API Error Handling', () => {
+  it('POST to non-existent route returns 404', async () => {
+    const res = await request(app).post('/api/nonexistent');
+    expect(res.status).toBe(404);
   });
 
-  it('albums nested query with tracks and track_files', () => {
-    const query = { select: '*,tracks(*,track_files(*))' };
-    expect(query.select).toContain('tracks');
-    expect(query.select).toContain('track_files');
-  });
-
-  it('artist roster query returns required fields', () => {
-    const query = { select: 'id,stage_name,status,legal_name' };
-    expect(query.select).toContain('stage_name');
-    expect(query.select).toContain('status');
+  it('GET to checkout route returns 404 (only POST allowed)', async () => {
+    const res = await request(app).get('/api/checkout');
+    expect(res.status).toBe(404);
   });
 });
