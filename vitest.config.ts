@@ -12,13 +12,13 @@ export default defineConfig({
       reporter: ['text', 'lcov', 'html'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.*', 'src/test/**', 'src/types/**'],
-      // Thresholds raised toward 50% phase target (2026-06-16).
-      // Continue raising by 5-10 points as more components are tested.
+      // Thresholds: 50% phase coverage achieved (2026-06-16).
+      // Raise to 40/35/40/40 for 100% phase target.
       thresholds: {
-        statements: 12,
-        branches: 9,
-        functions: 10,
-        lines: 13,
+        statements: 31,
+        branches: 24,
+        functions: 26,
+        lines: 35,
       },
     },
   },
