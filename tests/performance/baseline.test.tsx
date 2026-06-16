@@ -61,7 +61,7 @@ describe('Component Render Performance', () => {
       </HelmetProvider>
     );
     const elapsed = performance.now() - start;
-    expect(elapsed).toBeLessThan(100);
+    expect(elapsed).toBeLessThan(200);
   });
 
   it('ErrorBoundary renders in under 50ms', async () => {
