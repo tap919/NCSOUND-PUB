@@ -15,19 +15,58 @@ export default function Home() {
 
   const { playTrack, pause } = usePlayerStore();
 
-  useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('beat_store_products').select('title, genre, audio_url').eq('status', 'active').order('created_at', { ascending: false }).limit(6); if (!ignore && data) setFeaturedTracks(data.map(b => ({ title: b.title.toUpperCase(), artist: 'Tap919', genre: (b.genre || 'HIP-HOP').toUpperCase(), image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&fit=crop' }))); })(); return () => { ignore = true; }; }, []);
-
   useEffect(() => {
+    let ignore = false;
     (async () => {
-      const { data } = await supabase.from('tracks').select('id, title, track_files(file_type, storage_url)').limit(1).single();
-      if (data) {
-        const audioUrl = data.track_files?.find((f: any) => f.file_type === 'master')?.storage_url;
-        if (audioUrl) {
-          playTrack({ id: data.id, title: data.title, artist: 'Mr. Niro', url: audioUrl });
-          setTimeout(() => pause(), 100);
-        }
+      const { data } = await supabase
+        .from('beat_store_products')
+        .select('title, genre, audio_url')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(6);
+      const beats = data as { title: string; genre: string | null; audio_url: string | null }[] | null;
+      if (!ignore && beats) {
+        setFeaturedTracks(
+          beats.map(b => ({
+            title: b.title.toUpperCase(),
+            artist: 'Tap919',
+            genre: (b.genre || 'HIP-HOP').toUpperCase(),
+            image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&fit=crop',
+          }))
+        );
       }
     })();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('tracks')
+          .select('id, title, track_files(file_type, storage_url)')
+          .limit(1)
+          .single();
+        if (ignore) return;
+        const track = data as
+          | { id: string; title: string; track_files: { file_type: string; storage_url: string }[] }
+          | null;
+        if (track) {
+          const audioUrl = track.track_files?.find(f => f.file_type === 'master')?.storage_url;
+          if (audioUrl) {
+            playTrack({ id: track.id, title: track.title, artist: 'Mr. Niro', url: audioUrl });
+            timer = setTimeout(() => { if (!ignore) pause(); }, 100);
+          }
+        }
+      } catch {
+        // .single() throws on empty table — silently ignore
+      }
+    })();
+    return () => { ignore = true; if (timer) clearTimeout(timer); };
   }, []);
 
   return (
