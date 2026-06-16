@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import 'dotenv/config';
@@ -6,15 +6,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import cron from 'node-cron';
 
-// Error sanitization â€” never leak internal details to the client
-const SENSITIVE_KEYWORDS = ['key', 'secret', 'token', 'password', 'authorization', 'bearer', 'stripe'];
-function sanitizeError(err: unknown): string {
-  if (!err) return 'An unexpected error occurred';
-  const message = err instanceof Error ? err.message : String(err);
-  const lower = message.toLowerCase();
-  if (SENSITIVE_KEYWORDS.some(s => lower.includes(s))) return 'Internal configuration error';
-  return message.substring(0, 300);
-}
+import { sanitizeError } from './src/lib/sanitize';
 
 function missingFields(body: any, fields: string[]): string | null {
   for (const f of fields) {
