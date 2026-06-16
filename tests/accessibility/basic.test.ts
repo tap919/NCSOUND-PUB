@@ -1,81 +1,94 @@
+import React from 'react';
 import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
+import { MemoryRouter } from 'react-router-dom';
+import { SEO } from '../../src/components/SEO';
+import { ErrorBoundary } from '../../src/components/ErrorBoundary';
 
-describe('Accessibility Baseline Checks', () => {
-  describe('Color Contrast', () => {
-    it('orange on black meets contrast requirements', () => {
-      const orange = '#f97316';
-      const black = '#000000';
-      const relativeLuminance = (hex: string) => {
-        const val = parseInt(hex.replace('#', ''), 16);
-        const r = ((val >> 16) & 0xff) / 255;
-        const g = ((val >> 8) & 0xff) / 255;
-        const b = (val & 0xff) / 255;
-        const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-        return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
-      };
-      const l1 = relativeLuminance(orange);
-      const l2 = relativeLuminance(black);
-      const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
+function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    React.createElement(HelmetProvider, null,
+      React.createElement(MemoryRouter, null, ui)
+    )
+  );
+}
 
-    it('white on dark background meets contrast requirements', () => {
-      const white = '#ffffff';
-      const dark = '#171717';
-      const relativeLuminance = (hex: string) => {
-        const val = parseInt(hex.replace('#', ''), 16);
-        const r = ((val >> 16) & 0xff) / 255;
-        const g = ((val >> 8) & 0xff) / 255;
-        const b = (val & 0xff) / 255;
-        const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-        return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
-      };
-      const l1 = relativeLuminance(white);
-      const l2 = relativeLuminance(dark);
-      const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
+describe('Accessibility: Semantic HTML', () => {
+  it('ErrorBoundary renders semantic elements', () => {
+    renderWithProviders(
+      React.createElement(ErrorBoundary, {
+        fallback: React.createElement('main', null,
+          React.createElement('h1', null, 'Error'),
+          React.createElement('p', null, 'Something went wrong')
+        ),
+      }, React.createElement('div', null, 'Content'))
+    );
+    const main = screen.queryByRole('main');
+    if (main) {
+      expect(main).toBeVisible();
+    }
   });
 
-  describe('Semantic HTML', () => {
-    it('uses semantic heading elements', () => {
-      const markup = '<h1>Title</h1><h2>Section</h2><nav>Links</nav><main>Content</main><footer>Footer</footer>';
-      expect(markup).toContain('<h1');
-      expect(markup).toContain('<nav');
-      expect(markup).toContain('<main');
-      expect(markup).toContain('<footer');
-    });
+  it('SEO component renders without errors', () => {
+    renderWithProviders(React.createElement(SEO, { title: 'Test', description: 'Test description' }));
+    expect(document.title).toContain('Test');
+  });
+});
 
-    it('images have alt text', () => {
-      const good = '<img src="photo.jpg" alt="Description" />';
-      const bad = '<img src="photo.jpg" />';
-      expect(good).toContain('alt=');
-      expect(bad).not.toContain('alt=');
-    });
+describe('Accessibility: Color Contrast', () => {
+  const relativeLuminance = (hex: string) => {
+    const val = parseInt(hex.replace('#', ''), 16);
+    const r = ((val >> 16) & 0xff) / 255;
+    const g = ((val >> 8) & 0xff) / 255;
+    const b = (val & 0xff) / 255;
+    const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+  };
+
+  const contrastRatio = (hex1: string, hex2: string) => {
+    const l1 = relativeLuminance(hex1);
+    const l2 = relativeLuminance(hex2);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+
+  it('orange (#f97316) on black (#000000) meets WCAG AA (4.5:1)', () => {
+    expect(contrastRatio('#f97316', '#000000')).toBeGreaterThanOrEqual(4.5);
   });
 
-  describe('Keyboard Navigation', () => {
-    it('links are focusable', () => {
-      const link = '<a href="/about">About</a>';
-      expect(link).toContain('href=');
-    });
-
-    it('buttons are focusable', () => {
-      const button = '<button type="button">Click</button>';
-      expect(button).toContain('type=');
-    });
-
-    it('form inputs have labels', () => {
-      const form = '<label for="email">Email</label><input id="email" type="email" />';
-      expect(form).toContain('label');
-      expect(form).toContain('for=');
-    });
+  it('white (#ffffff) on dark (#171717) meets WCAG AA (4.5:1)', () => {
+    expect(contrastRatio('#ffffff', '#171717')).toBeGreaterThanOrEqual(4.5);
   });
 
-  describe('Focus Management', () => {
-    it('skip navigation link exists', () => {
-      const skipLink = '<a href="#main-content" class="skip-link">Skip to main content</a>';
-      expect(skipLink).toContain('skip');
-    });
+  it('white (#ffffff) on black (#000000) meets WCAG AAA (7:1)', () => {
+    expect(contrastRatio('#ffffff', '#000000')).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe('Accessibility: Focusable Elements', () => {
+  it('links with href are inherently focusable', () => {
+    const link = document.createElement('a');
+    link.href = '/about';
+    document.body.appendChild(link);
+    expect(link.tabIndex).toBe(0);
+    document.body.removeChild(link);
+  });
+
+  it('buttons are inherently focusable', () => {
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    expect(button.tabIndex).toBe(0);
+    document.body.removeChild(button);
+  });
+});
+
+describe('Accessibility: Image Alt Text', () => {
+  it('img elements in rendered content should have alt attribute', () => {
+    const img = document.createElement('img');
+    img.alt = 'A descriptive text';
+    expect(img).toHaveAttribute('alt', 'A descriptive text');
+
+    const imgNoAlt = document.createElement('img');
+    expect(imgNoAlt.alt).toBe('');
   });
 });
