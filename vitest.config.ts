@@ -15,10 +15,10 @@ export default defineConfig({
       // Thresholds raised toward 50% phase target (2026-06-16).
       // Continue raising by 5-10 points as more components are tested.
       thresholds: {
-        statements: 8,
-        branches: 5,
-        functions: 7,
-        lines: 9,
+        statements: 12,
+        branches: 9,
+        functions: 10,
+        lines: 13,
       },
     },
   },
