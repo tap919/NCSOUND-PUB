@@ -84,23 +84,28 @@ describe('Security: sanitizeError', () => {
     expect(result).toBe('Internal configuration error');
   });
 
-  it('redacts messages containing "secret"', () => {
-    const result = sanitizeError(new Error('Missing secret token'));
+  it('redacts messages containing "secret: value"', () => {
+    const result = sanitizeError(new Error('secret: abc123'));
     expect(result).toBe('Internal configuration error');
   });
 
-  it('redacts messages containing "token"', () => {
-    const result = sanitizeError(new Error('Invalid bearer token'));
+  it('redacts messages containing "token: value"', () => {
+    const result = sanitizeError(new Error('token: xyz'));
     expect(result).toBe('Internal configuration error');
   });
 
-  it('redacts messages containing "password"', () => {
-    const result = sanitizeError(new Error('Wrong password'));
+  it('redacts messages containing "password: value"', () => {
+    const result = sanitizeError(new Error('password: 12345'));
     expect(result).toBe('Internal configuration error');
   });
 
-  it('redacts messages containing "stripe"', () => {
-    const result = sanitizeError(new Error('Stripe key not configured'));
+  it('redacts messages containing sk_live_ pattern', () => {
+    const result = sanitizeError(new Error('Error: sk_live_abc123'));
+    expect(result).toBe('Internal configuration error');
+  });
+
+  it('redacts messages containing sk_test_ pattern', () => {
+    const result = sanitizeError(new Error('Error: sk_test_abc123'));
     expect(result).toBe('Internal configuration error');
   });
 
