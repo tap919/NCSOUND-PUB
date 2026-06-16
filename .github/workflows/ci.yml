@@ -20,17 +20,31 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run lint
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+
+      - name: Typecheck
+        run: npm run typecheck
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || '' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || '' }}
 
-      - run: npm run test
+      - name: Lint
+        run: npm run lint:eslint
+
+      - name: Test with coverage
+        run: npm run test
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || '' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || '' }}
 
-      - run: npm run build
+      - name: Build
+        run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || '' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || '' }}
@@ -54,13 +68,17 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install chromium
+      - run: npx playwright install chromium firefox webkit
 
       - run: npx playwright test
-        timeout-minutes: 10
+        timeout-minutes: 15
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || '' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || '' }}
+          TEST_ARTIST_EMAIL: ${{ secrets.TEST_ARTIST_EMAIL || '' }}
+          TEST_ARTIST_PASSWORD: ${{ secrets.TEST_ARTIST_PASSWORD || '' }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || '' }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD || '' }}
 
       - uses: actions/upload-artifact@v4
         if: failure()
