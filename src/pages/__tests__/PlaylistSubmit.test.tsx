@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -10,11 +10,20 @@ vi.mock('react-hot-toast', () => ({
   default: { error: vi.fn(), success: vi.fn() },
 }));
 
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    json: () => Promise.resolve({ remaining: 5, monthly_limit: 10 }),
-  })
-) as any;
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve({ remaining: 5, monthly_limit: 10 }),
+      })
+    )
+  );
+});
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 import PlaylistSubmit from '../../pages/PlaylistSubmit';
 
@@ -27,14 +36,14 @@ function renderPage() {
 }
 
 describe('PlaylistSubmit', () => {
-  it('renders the upload heading', () => {
+  it('renders the upload heading', async () => {
     renderPage();
-    expect(screen.getByText('Submit to')).toBeVisible();
-    expect(screen.getByText('Playlist')).toBeVisible();
+    expect(await screen.findByText('Submit to')).toBeVisible();
+    expect(await screen.findByText('Playlist')).toBeVisible();
   });
 
-  it('renders the step indicator', () => {
+  it('renders the step indicator', async () => {
     renderPage();
-    expect(screen.getByText('Track Details')).toBeVisible();
+    expect(await screen.findByText('Track Details')).toBeVisible();
   });
 });

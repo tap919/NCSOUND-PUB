@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 
 vi.mock('../hooks/useAuth', () => ({
@@ -96,12 +96,12 @@ vi.mock('../pages/PlaylistSubmit', () => ({ default: () => <div>PlaylistSubmit</
 import App from '../App';
 
 describe('App', () => {
-  it('renders without crashing', () => {
-    const { container } = render(
+  it('renders without crashing', async () => {
+    render(
       <HelmetProvider>
         <App />
       </HelmetProvider>,
     );
-    expect(container).toBeTruthy();
+    expect(await screen.findByText('Player')).toBeVisible();
   });
 });

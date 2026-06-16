@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { BriefMatcher } from '../../components/BriefMatcher';
 
@@ -50,11 +50,12 @@ describe('BriefMatcher', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = render(
       <BriefMatcher brief={{ genre: 'rock', mood: 'dark', bpmMin: 120, bpmMax: 140, energy: 'high' }} />
     );
     expect(container).toBeTruthy();
+    expect(await screen.findByText(/No matching tracks found|AI Match Results/)).toBeVisible();
   });
 
   it('renders AI Match Results heading when tracks are found', async () => {
@@ -76,9 +77,11 @@ describe('BriefMatcher', () => {
     expect(msg).toBeVisible();
   });
 
-  it('shows loading skeletons initially', () => {
-    render(<BriefMatcher brief={{ genre: 'rock' }} />);
-    const skeletons = document.querySelectorAll('.animate-pulse');
-    expect(skeletons.length).toBeGreaterThan(0);
+  it('shows loading skeletons initially', async () => {
+    const { container } = render(<BriefMatcher brief={{ genre: 'rock' }} />);
+    await waitFor(() => {
+      const skeletons = container.querySelectorAll('.animate-pulse');
+      expect(skeletons.length).toBeGreaterThan(0);
+    });
   });
 });

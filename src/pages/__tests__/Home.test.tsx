@@ -69,43 +69,44 @@ describe('Home (Regression)', () => {
     vi.clearAllMocks();
   });
 
-  it('renders without crashing (regression: missing div wrapper / import errors)', () => {
+  it('renders without crashing (regression: missing div wrapper / import errors)', async () => {
     const { container } = renderHome();
     expect(container).toBeTruthy();
+    expect(await screen.findByText(/The Only Beat Store That/i)).toBeVisible();
   });
 
-  it('renders the hero heading', () => {
+  it('renders the hero heading', async () => {
     renderHome();
-    expect(screen.getByText(/The Only Beat Store That/i)).toBeVisible();
+    expect(await screen.findByText(/The Only Beat Store That/i)).toBeVisible();
   });
 
-  it('renders Submit Your Catalog link', () => {
+  it('renders Submit Your Catalog link', async () => {
     renderHome();
-    expect(screen.getByRole('link', { name: 'Submit Your Catalog' })).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Submit Your Catalog' })).toBeVisible();
   });
 
-  it('renders Supervisor Access link', () => {
+  it('renders Supervisor Access link', async () => {
     renderHome();
-    expect(screen.getByRole('link', { name: 'Supervisor Access' })).toBeVisible();
+    expect(await screen.findByRole('link', { name: 'Supervisor Access' })).toBeVisible();
   });
 
-  it('renders Featured Sync Catalog section', () => {
+  it('renders Featured Sync Catalog section', async () => {
     renderHome();
-    expect(screen.getByText('Featured Sync Catalog')).toBeVisible();
+    expect(await screen.findByText('Featured Sync Catalog')).toBeVisible();
   });
 
-  it('renders without featured tracks crashing (regression: stale mock data)', () => {
+  it('renders without featured tracks crashing (regression: stale mock data)', async () => {
     renderHome();
-    expect(screen.getByText('Featured Sync Catalog')).toBeVisible();
+    expect(await screen.findByText('Featured Sync Catalog')).toBeVisible();
   });
 
-  it('renders Listen section', () => {
+  it('renders Listen section', async () => {
     renderHome();
-    expect(screen.getByText('Hear Our Artists')).toBeVisible();
+    expect(await screen.findByText('Hear Our Artists')).toBeVisible();
   });
 
-  it('renders email capture form', () => {
+  it('renders email capture form', async () => {
     renderHome();
-    expect(screen.getByPlaceholderText('Enter your email')).toBeVisible();
+    expect(await screen.findByPlaceholderText('Enter your email')).toBeVisible();
   });
 });

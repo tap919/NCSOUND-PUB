@@ -31,23 +31,23 @@ function renderRoyalties() {
 describe('Artist Royalties', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders royalties heading', () => {
+  it('renders royalties heading', async () => {
     renderRoyalties();
-    expect(screen.getByText('Royalties')).toBeVisible();
+    expect(await screen.findByText('Royalties')).toBeVisible();
   });
 
-  it('shows statement list area', () => {
+  it('shows statement list area', async () => {
     renderRoyalties();
-    expect(screen.getByText('Statement History')).toBeVisible();
+    expect(await screen.findByText('Statement History')).toBeVisible();
   });
 
-  it('shows Stripe connect section', () => {
+  it('shows Stripe connect section', async () => {
     renderRoyalties();
-    expect(screen.getByText('Connect Stripe')).toBeVisible();
+    expect(await screen.findByText('Connect Stripe')).toBeVisible();
   });
 
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
     renderRoyalties();
-    expect(screen.getByText('Loading statements...')).toBeVisible();
+    expect(await screen.findByText('Loading statements...')).toBeVisible();
   });
 });

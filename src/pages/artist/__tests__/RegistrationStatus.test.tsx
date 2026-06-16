@@ -30,15 +30,15 @@ function renderRegistrationStatus() {
 describe('Artist RegistrationStatus', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders status heading', () => {
+  it('renders status heading', async () => {
     renderRegistrationStatus();
-    expect(screen.getByText('Registration')).toBeVisible();
-    expect(screen.getByText('Status')).toBeVisible();
+    expect(await screen.findByText('Registration')).toBeVisible();
+    expect(await screen.findByText('Status')).toBeVisible();
   });
 
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
     renderRegistrationStatus();
-    expect(screen.getByText('Loading registrations...')).toBeVisible();
+    expect(await screen.findByText('Loading registrations...')).toBeVisible();
   });
 
   it('handles empty registrations', async () => {

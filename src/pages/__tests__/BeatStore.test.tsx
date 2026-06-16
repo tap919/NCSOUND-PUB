@@ -40,37 +40,39 @@ describe('BeatStore (Regression)', () => {
     vi.clearAllMocks();
   });
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     const { container } = renderBeatStore();
     expect(container).toBeTruthy();
+    expect(await screen.findByText('Beat Store')).toBeVisible();
   });
 
-  it('renders the Beat Store heading', () => {
+  it('renders the Beat Store heading', async () => {
     renderBeatStore();
-    expect(screen.getByText('Beat Store')).toBeVisible();
+    expect(await screen.findByText('Beat Store')).toBeVisible();
   });
 
-  it('renders genre filter buttons', () => {
+  it('renders genre filter buttons', async () => {
     renderBeatStore();
-    expect(screen.getByText('All')).toBeVisible();
-    expect(screen.getByText('Soul')).toBeVisible();
-    expect(screen.getByText('Hip-Hop')).toBeVisible();
+    expect(await screen.findByText('All')).toBeVisible();
+    expect(await screen.findByText('Soul')).toBeVisible();
+    expect(await screen.findByText('Hip-Hop')).toBeVisible();
   });
 
-  it('shows loading state initially', () => {
+  it('shows loading state initially', async () => {
     renderBeatStore();
-    expect(screen.getByText('Loading beats...')).toBeVisible();
+    expect(await screen.findByText('Loading beats...')).toBeVisible();
   });
 
-  it('does NOT render a play button (regression: play button removed, beats for sync only)', () => {
+  it('does NOT render a play button (regression: play button removed, beats for sync only)', async () => {
     renderBeatStore();
+    await screen.findByText('Beat Store');
     expect(screen.queryByRole('button', { name: /play/i })).toBeNull();
   });
 
-  it('renders pricing tiers section', () => {
+  it('renders pricing tiers section', async () => {
     renderBeatStore();
-    expect(screen.getByText('First Wave Lease')).toBeVisible();
-    expect(screen.getByText('Standard Lease')).toBeVisible();
-    expect(screen.getByText('WAV + Stems')).toBeVisible();
+    expect(await screen.findByText('First Wave Lease')).toBeVisible();
+    expect(await screen.findByText('Standard Lease')).toBeVisible();
+    expect(await screen.findByText('WAV + Stems')).toBeVisible();
   });
 });

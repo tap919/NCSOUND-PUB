@@ -42,30 +42,30 @@ function renderDashboard() {
 describe('Artist Dashboard', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     renderDashboard();
-    expect(screen.getByText('Dashboard')).toBeVisible();
+    expect(await screen.findByText('Dashboard')).toBeVisible();
   });
 
-  it('renders tab navigation', () => {
+  it('renders tab navigation', async () => {
     renderDashboard();
-    expect(screen.getByText('My Catalog')).toBeVisible();
-    expect(screen.getByText('Royalties')).toBeVisible();
-    expect(screen.getByText('Insights')).toBeVisible();
+    expect(await screen.findByText('My Catalog')).toBeVisible();
+    expect(await screen.findByText('Royalties')).toBeVisible();
+    expect(await screen.findByText('Insights')).toBeVisible();
   });
 
-  it('shows loading state in catalog', () => {
+  it('shows loading state in catalog', async () => {
     renderDashboard();
-    expect(screen.getByText('Loading catalog...')).toBeVisible();
+    expect(await screen.findByText('Loading catalog...')).toBeVisible();
   });
 
-  it('renders logout button', () => {
+  it('renders logout button', async () => {
     renderDashboard();
-    expect(screen.getByText('Sign Out')).toBeVisible();
+    expect(await screen.findByText('Sign Out')).toBeVisible();
   });
 
-  it('renders AgentChat area', () => {
+  it('renders AgentChat area', async () => {
     renderDashboard();
-    expect(screen.getByText('AgentChat')).toBeVisible();
+    expect(await screen.findByText('AgentChat')).toBeVisible();
   });
 });

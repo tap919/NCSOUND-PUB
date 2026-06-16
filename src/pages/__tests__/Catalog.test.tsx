@@ -55,24 +55,24 @@ function renderCatalog() {
 describe('Catalog Page', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders Licensed Sync heading', () => {
+  it('renders Licensed Sync heading', async () => {
     renderCatalog();
-    expect(screen.getByText('Licensed Sync')).toBeVisible();
+    expect(await screen.findByText('Licensed Sync')).toBeVisible();
   });
 
-  it('renders search input', () => {
+  it('renders search input', async () => {
     renderCatalog();
-    const searchInput = document.querySelector('input[placeholder*="Search"]');
+    const searchInput = await screen.findByPlaceholderText(/Search/i);
     expect(searchInput).toBeVisible();
   });
 
-  it('renders Genre filter section', () => {
+  it('renders Genre filter section', async () => {
     renderCatalog();
-    expect(screen.getByRole('heading', { name: 'Genre' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Genre' })).toBeVisible();
   });
 
-  it('renders 100% Pre-Cleared badge', () => {
+  it('renders 100% Pre-Cleared badge', async () => {
     renderCatalog();
-    expect(screen.getByText('100% Pre-Cleared')).toBeVisible();
+    expect(await screen.findByText('100% Pre-Cleared')).toBeVisible();
   });
 });

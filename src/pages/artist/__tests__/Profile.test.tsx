@@ -31,22 +31,22 @@ function renderProfile() {
 describe('Artist Profile', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('renders profile form', () => {
+  it('renders profile form', async () => {
     renderProfile();
-    expect(screen.getByText('Artist')).toBeVisible();
-    expect(screen.getByText('Profile')).toBeVisible();
-    expect(screen.getByText('Stage Name')).toBeVisible();
-    expect(screen.getByText('Legal Name')).toBeVisible();
+    expect(await screen.findByText('Artist')).toBeVisible();
+    expect(await screen.findByText('Profile')).toBeVisible();
+    expect(await screen.findByText('Stage Name')).toBeVisible();
+    expect(await screen.findByText('Legal Name')).toBeVisible();
   });
 
-  it('renders save button', () => {
+  it('renders save button', async () => {
     renderProfile();
-    expect(screen.getByText('Save Profile')).toBeVisible();
+    expect(await screen.findByText('Save Profile')).toBeVisible();
   });
 
-  it('shows no links connected state', () => {
+  it('shows no links connected state', async () => {
     renderProfile();
-    expect(screen.getByText('Connected Platforms')).toBeVisible();
-    expect(screen.getByText(/No links added yet/)).toBeVisible();
+    expect(await screen.findByText('Connected Platforms')).toBeVisible();
+    expect(await screen.findByText(/No links added yet/)).toBeVisible();
   });
 });

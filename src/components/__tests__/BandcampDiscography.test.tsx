@@ -21,10 +21,12 @@ describe('BandcampDiscography', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders loading skeleton initially', () => {
+  it('renders loading skeleton initially', async () => {
     const { container } = render(<BandcampDiscography artist="Test" />);
-    const skeletons = container.querySelectorAll('.animate-pulse');
-    expect(skeletons.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const skeletons = container.querySelectorAll('.animate-pulse');
+      expect(skeletons.length).toBeGreaterThan(0);
+    });
   });
 
   it('renders releases after fetch', async () => {
