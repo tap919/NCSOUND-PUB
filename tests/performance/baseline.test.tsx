@@ -50,7 +50,7 @@ describe('Performance Baselines', () => {
 });
 
 describe('Component Render Performance', () => {
-  it('SEO renders in under 50ms', async () => {
+  it('SEO renders in under 200ms', async () => {
     const { SEO } = await import('../../src/components/SEO');
     const start = performance.now();
     render(
