@@ -76,7 +76,7 @@ test.describe('Contact Form Submission', () => {
     await page.waitForTimeout(1000);
     const successMsg = page.getByText(/thank|sent|received|success/i);
     const validationMsg = page.locator(':invalid, [aria-invalid="true"], .error, .text-red');
-    const hasResponse = (await successMsg.count()) > 0 || (await validationMsg.count()) > 0;
+    await expect(successMsg.or(validationMsg).first()).toBeVisible({ timeout: 5000 });
   });
 });
 
