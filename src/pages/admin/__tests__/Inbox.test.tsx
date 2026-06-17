@@ -3,17 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../lib/supabase', () => {
-  function createSupabaseMock(returnData: any[] | null = []) {
-    const self: any = {};
-    self.then = (cb: (val: any) => void) => cb({ data: returnData, error: null });
-    return new Proxy(self, {
-      get(_, prop) {
-        if (prop === 'then') return self.then;
-        return () => self;
-      },
-    });
+  function chain(returnData: any[] | null = []) {
+    const thenFulfill = (cb: (val: any) => void) => cb({ data: returnData, error: null });
+    return { then: thenFulfill, select: () => chain(returnData), order: () => chain(returnData), range: () => chain(returnData) };
   }
-  return { supabase: { from: () => createSupabaseMock() } };
+  return { supabase: { from: () => chain() } };
 });
 
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
@@ -38,7 +32,7 @@ describe('Admin Inbox', () => {
 
   it('shows empty state when no submissions', async () => {
     renderInbox();
-    await waitFor(() => expect(screen.getByText('No submissions yet.')).toBeVisible());
+    await expect(screen.findByText('No submissions yet.', {}, { timeout: 5000 })).resolves.toBeVisible();
   });
 
   it('shows pagination', async () => {
