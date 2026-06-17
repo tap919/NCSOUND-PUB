@@ -18,8 +18,31 @@
 - [ ] **Product:** Feature completeness verified against requirements (requires product owner)
 - [ ] **Release/Ops:** Deploy checklist executed, rollback tested, monitoring verified (requires ops)
 
-## How to complete the remaining sign-offs
+## QA Sign-off Checklist
 
-1. **QA sign-off:** Have a team member (not the primary developer) run through the app on `localhost:3000` — visit all public pages, try artist/admin login forms, verify error pages render properly.
-2. **Product sign-off:** Product owner reviews the release notes and confirms the sprint goals are met.
-3. **Release/Ops sign-off:** Execute each step in `docs/testing/DEPLOY_CHECKLIST.md`, tag the release, confirm the health endpoint responds.
+Have a team member (not the primary developer) complete these steps:
+
+- [ ] Visit all public pages: Home, Catalog, Beat Store, About, Niro Music, Story, Privacy, Terms
+- [ ] Verify no blank screens or console errors
+- [ ] Test artist login flow with seeded test account
+- [ ] Test admin login flow with seeded test account
+- [ ] Submit the contact form and verify success
+- [ ] Browse catalog, open a track detail page
+- [ ] Open beat store, verify pricing tiers visible
+- [ ] Check 404 page renders with return-home link
+- [ ] Test on mobile viewport (responsive layout)
+
+## Product Sign-off Checklist
+
+- [ ] All planned features from v0.1.0 scope are working
+- [ ] Release notes reviewed and accurate (`docs/release/v0.1.0.md`)
+- [ ] Known limitations are acceptable for this release
+- [ ] No outstanding critical or high-severity bugs
+
+## Release/Ops Sign-off Checklist
+
+- [ ] Deploy checklist completed (`docs/testing/DEPLOY_CHECKLIST.md`)
+- [ ] Health endpoint returns 200 after deploy
+- [ ] Monitoring dashboards show healthy metrics
+- [ ] Rollback procedure tested (revert last deploy, verify)
+- [ ] Release tag created: `git tag v0.1.0 && git push --tags`

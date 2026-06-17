@@ -14,6 +14,7 @@
 - [ ] Stripe webhook endpoint configured in Stripe Dashboard
 - [ ] Supabase Auth configured (email/password, redirect URLs)
 - [ ] No open critical or high-severity defects
+- [ ] Performance baseline recorded (`docs/testing/PERFORMANCE_LOG.md`)
 
 ## Deploy
 
