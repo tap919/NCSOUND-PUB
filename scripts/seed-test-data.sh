@@ -14,13 +14,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SEED_SQL="$PROJECT_DIR/supabase/seed-test-accounts.sql"
 
-# Load .env.test if present
+# Load .env.test if present (or .env.test.example as template)
 if [ -f "$PROJECT_DIR/.env.test" ]; then
   echo "Loading .env.test..."
   set -a
   # shellcheck disable=SC1091
   source "$PROJECT_DIR/.env.test"
   set +a
+elif [ -f "$PROJECT_DIR/.env.test.example" ]; then
+  echo "Found .env.test.example — copy it to .env.test and fill in credentials"
 fi
 
 if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
