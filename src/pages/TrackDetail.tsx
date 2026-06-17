@@ -100,7 +100,7 @@ export default function TrackDetail() {
               <h1 className="text-5xl sm:text-6xl font-heading font-bold uppercase tracking-wider text-white leading-none">{track.title}</h1>
               <p className="text-xl font-sans text-neutral-400 mt-2 font-medium">{track.artists?.stage_name || 'NcSound Artist'}</p>
             </div>
-            <button onClick={handlePlay} className="h-16 w-16 bg-orange-500 rounded-full flex items-center justify-center text-black hover:scale-105 transition-transform shadow-[0_0_20px_rgba(249,115,22,0.4)] flex-shrink-0">
+            <button type="button" onClick={handlePlay} className="h-16 w-16 bg-orange-500 rounded-full flex items-center justify-center text-black hover:scale-105 transition-transform shadow-[0_0_20px_rgba(249,115,22,0.4)] flex-shrink-0">
               <Play className="w-8 h-8 ml-1" />
             </button>
           </div>
@@ -203,7 +203,7 @@ export default function TrackDetail() {
             <p className="text-sm font-sans text-neutral-400 mb-6">One-stop clearance. Master + publishing rights pre-cleared. 24-hour turnaround.</p>
             <Dialog.Root open={licenseOpen} onOpenChange={setLicenseOpen}>
               <Dialog.Trigger asChild>
-                <button className="w-full bg-orange-500 text-black px-6 py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-orange-400 transition-colors">
+                <button type="button" className="w-full bg-orange-500 text-black px-6 py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-orange-400 transition-colors">
                   Request License
                 </button>
               </Dialog.Trigger>
@@ -214,7 +214,7 @@ export default function TrackDetail() {
                   <Dialog.Description className="text-sm font-sans text-neutral-400 mb-6">Enter your email to receive a license quote for this track.</Dialog.Description>
                   <div className="space-y-4">
                     <input value={licenseEmail} onChange={e => setLicenseEmail(e.target.value)} placeholder="your@email.com" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 text-white focus:border-orange-500 outline-none font-sans" />
-                    <button onClick={async () => {
+                    <button type="button" onClick={async () => {
                       if (!licenseEmail) return toast.error('Enter your email');
                       await supabase.from('license_requests').insert({ track_id: track?.id, requester_email: licenseEmail, status: 'pending' } as any);
                       toast.success('License request submitted!');
@@ -300,7 +300,7 @@ function LiveLicensePurchase({ trackId, trackTitle }: { trackId?: string; trackT
       <h3 className="text-xl font-heading uppercase tracking-wider text-white flex items-center mb-4"><ShoppingCart className="w-5 h-5 mr-2 text-orange-500" /> Self-Serve Licenses</h3>
       <div className="space-y-2 mb-4">
         {TIERS.map(t => (
-          <button key={t.name} onClick={() => setSelected(t.name)}
+          <button type="button" key={t.name} onClick={() => setSelected(t.name)}
             className={'w-full flex justify-between items-center p-3 border transition-colors text-left ' + (selected === t.name ? 'border-orange-500 bg-orange-500/10' : 'border-neutral-800 bg-neutral-900 hover:bg-neutral-800')}>
             <div>
               <span className="text-white font-bold text-sm block">{t.name}</span>
@@ -312,7 +312,7 @@ function LiveLicensePurchase({ trackId, trackTitle }: { trackId?: string; trackT
       </div>
       <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
         className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-sm focus:border-orange-500 outline-none mb-3 font-sans" />
-      <button onClick={handleBuy} disabled={buying}
+      <button type="button" onClick={handleBuy} disabled={buying}
         className="w-full bg-orange-500 text-black px-4 py-3 text-xs font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
         <ShoppingCart className="w-4 h-4" /> {buying ? 'Processing...' : 'Buy ' + selected + ' License â€” $' + TIERS.find(t => t.name === selected)?.price}
       </button>

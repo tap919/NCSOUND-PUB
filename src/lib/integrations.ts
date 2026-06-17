@@ -5,8 +5,6 @@
 // Handles API communication with all 3rd party music platforms
 // ============================================================
 
-import type { Database } from '../types/supabase';
-
 // === TYPES ===
 
 export interface IntegrationConfig {

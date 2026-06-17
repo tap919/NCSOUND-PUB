@@ -214,6 +214,7 @@ export default function About() {
         <div className="mt-10 mx-auto max-w-lg">
           <div className="flex border-b-2 border-neutral-800 mb-8">
             <button
+              type="button"
               onClick={() => setInquiryType('sync')}
               className={`flex-1 pb-4 text-sm font-bold uppercase tracking-widest text-center transition-all ${
                 inquiryType === 'sync' ? 'text-orange-500 border-b-2 border-orange-500 translate-y-[2px]' : 'text-neutral-500 hover:text-white'
@@ -222,6 +223,7 @@ export default function About() {
               Sync/Licensing
             </button>
             <button
+              type="button"
               onClick={() => setInquiryType('artist')}
               className={`flex-1 pb-4 text-sm font-bold uppercase tracking-widest text-center transition-all ${
                 inquiryType === 'artist' ? 'text-orange-500 border-b-2 border-orange-500 translate-y-[2px]' : 'text-neutral-500 hover:text-white'

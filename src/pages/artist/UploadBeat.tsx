@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Upload as UploadIcon, Music, DollarSign, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -13,7 +13,6 @@ export default function UploadBeat() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +24,7 @@ export default function UploadBeat() {
       const a = artist as unknown as { id: string } | null;
       if (!a) { toast.error('Artist profile not found.'); setLoading(false); return; }
       const price = leasePrice ? Math.max(0, parseFloat(leasePrice)) : null;
-      if (leasePrice && (isNaN(price!) || price! <= 0)) {
+      if (leasePrice && (price === null || isNaN(price) || price <= 0)) {
         toast.error('Invalid lease price');
         setLoading(false);
         return;
@@ -50,7 +49,7 @@ export default function UploadBeat() {
         <h2 className="text-3xl font-heading uppercase text-white mb-4">Beat Uploaded!</h2>
         <p className="text-neutral-400 font-sans mb-8">Your beat is now live in the Beat Store.</p>
         <div className="flex gap-4 justify-center">
-          <button onClick={() => { setSuccess(false); setTitle(''); setGenre(''); setBpm(''); setLeasePrice(''); }} className="bg-orange-500 text-black px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
+          <button type="button" onClick={() => { setSuccess(false); setTitle(''); setGenre(''); setBpm(''); setLeasePrice(''); }} className="bg-orange-500 text-black px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
             Upload Another
           </button>
           <Link to="/artist/dashboard" className="border border-neutral-700 text-white px-6 py-3 text-sm font-bold uppercase tracking-widest hover:border-orange-500 transition-colors">

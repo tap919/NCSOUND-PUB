@@ -50,7 +50,7 @@ describe('Supabase Data Layer Integration', () => {
       expect(mockTrack.track_files).toHaveLength(2);
       const master = mockTrack.track_files.find(f => f.file_type === 'master');
       expect(master).toBeDefined();
-      expect(master!.storage_url).toContain('.wav');
+      expect(master?.storage_url).toContain('.wav');
     });
 
     it('finds master audio file from track_files', () => {

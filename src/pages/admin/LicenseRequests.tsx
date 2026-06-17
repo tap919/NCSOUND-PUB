@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { FileText, ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import type { LicenseRequest } from '../../types';
 
 export default function LicenseRequests() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<LicenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('license_requests').select('*, tracks(title)').order('created_at', { ascending: false }); if (!ignore) { if (data) setRequests(data); setLoading(false); } })(); return () => { ignore = true; }; }, []);
@@ -51,10 +52,10 @@ export default function LicenseRequests() {
               </div>
               {r.status === 'pending' && (
                 <div className="flex gap-3 mt-4 pt-4 border-t border-neutral-800">
-                  <button onClick={() => updateStatus(r.id, 'approved')} className="flex items-center bg-green-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-green-500 transition-colors">
+                  <button type="button" onClick={() => updateStatus(r.id, 'approved')} className="flex items-center bg-green-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-green-500 transition-colors">
                     <CheckCircle2 className="w-4 h-4 mr-2" /> Approve
                   </button>
-                  <button onClick={() => updateStatus(r.id, 'rejected')} className="flex items-center bg-red-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-red-500 transition-colors">
+                  <button type="button" onClick={() => updateStatus(r.id, 'rejected')} className="flex items-center bg-red-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-red-500 transition-colors">
                     <XCircle className="w-4 h-4 mr-2" /> Reject
                   </button>
                 </div>

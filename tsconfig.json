@@ -22,5 +22,23 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "src",
+    "server.ts",
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "eslint.config.js",
+    "tests",
+    "e2e"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "AgentBrowser-main",
+    "coverage",
+    "test-results"
+  ]
 }

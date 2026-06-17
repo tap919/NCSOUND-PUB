@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Mail, ChevronLeft, CheckCircle2, Trash2 } from 'lucide-react';
+import { Mail, ChevronLeft, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { ContactSubmission } from '../../types';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
 export default function Inbox() {
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 20;
@@ -44,7 +45,7 @@ export default function Inbox() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] uppercase font-bold tracking-widest bg-neutral-800 text-neutral-400 px-2 py-1">{s.type}</span>
-                  <button onClick={() => remove(s.id)} className="text-neutral-600 hover:text-red-500 transition-colors">
+                  <button type="button" onClick={() => remove(s.id)} className="text-neutral-600 hover:text-red-500 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -57,9 +58,9 @@ export default function Inbox() {
         )}
         {/* Pagination */}
         <div className="flex justify-between items-center mt-6">
-          <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="text-xs font-bold uppercase tracking-widest px-4 py-2 border border-neutral-700 text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Previous</button>
+          <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} className="text-xs font-bold uppercase tracking-widest px-4 py-2 border border-neutral-700 text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Previous</button>
           <span className="text-xs font-mono text-neutral-600">Page {page + 1}</span>
-          <button disabled={submissions.length < pageSize} onClick={() => setPage(p => p + 1)} className="text-xs font-bold uppercase tracking-widest px-4 py-2 border border-neutral-700 text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next</button>
+          <button type="button" disabled={submissions.length < pageSize} onClick={() => setPage(p => p + 1)} className="text-xs font-bold uppercase tracking-widest px-4 py-2 border border-neutral-700 text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">Next</button>
         </div>
       </div>
   );

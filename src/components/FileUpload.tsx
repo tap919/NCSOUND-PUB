@@ -68,7 +68,7 @@ export function FileUpload({ bucket, accept = 'audio/wav,audio/mpeg,audio/flac',
           {uploading ? (
             <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
           ) : (
-            <button onClick={() => { setFile(null); }} className="text-neutral-500 hover:text-white">
+            <button type="button" onClick={() => { setFile(null); }} className="text-neutral-500 hover:text-white">
               <X className="w-4 h-4" />
             </button>
           )}

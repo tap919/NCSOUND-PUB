@@ -102,7 +102,7 @@ const results = BEATS.filter(b => {
   return existsSync(srcPath);
 }).map(b => {
   const slug = slugify(b.title);
-  let cleanName = slug + '.mp3';
+  const cleanName = slug + '.mp3';
   return {
     sourceFile: join(SRC, b.src),
     title: b.title,

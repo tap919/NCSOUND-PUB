@@ -165,7 +165,7 @@ function countZeroCrossings(samples: Float32Array): number {
   return count;
 }
 
-function detectKey(samples: Float32Array, sampleRate: number): { key: string; confidence: number } {
+function detectKey(samples: Float32Array, _sampleRate: number): { key: string; confidence: number } {
   const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const chroma = new Float32Array(12);
   const frameSize = 2048, hopSize = 1024;
@@ -454,9 +454,9 @@ describe('parseToolCall', () => {
   it('parses tool name and args correctly', () => {
     const result = parseToolCall('TOOL: get_income_summary | artist_id=abc | period=2024');
     expect(result).not.toBeNull();
-    expect(result!.name).toBe('get_income_summary');
-    expect(result!.args.artist_id).toBe('abc');
-    expect(result!.args.period).toBe('2024');
+    expect(result?.name).toBe('get_income_summary');
+    expect(result?.args.artist_id).toBe('abc');
+    expect(result?.args.period).toBe('2024');
   });
 
   it('returns null for non-tool responses', () => {
@@ -470,7 +470,7 @@ describe('parseToolCall', () => {
   it('handles single arg', () => {
     const result = parseToolCall('TOOL: generate_cwr |');
     expect(result).not.toBeNull();
-    expect(result!.name).toBe('generate_cwr');
+    expect(result?.name).toBe('generate_cwr');
   });
 });
 

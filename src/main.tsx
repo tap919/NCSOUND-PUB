@@ -7,7 +7,14 @@ import { AuthProvider } from './hooks/useAuth';
 import { ToastContainer } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-createRoot(document.getElementById('root')!).render(
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(console.error);
+}
+
+const rootEl = document.getElementById('root');
+if (!rootEl) throw new Error('Root element not found');
+
+createRoot(rootEl).render(
   <StrictMode>
     <HelmetProvider>
       <ErrorBoundary>

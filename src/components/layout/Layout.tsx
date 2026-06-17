@@ -2,14 +2,20 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Menu, X, Disc3 } from 'lucide-react';
 import { useState } from 'react';
 import { GlobalPlayer } from '../GlobalPlayer';
+import { useAuth } from '../../hooks/useAuth';
+import { usePlayerStore } from '../../store/usePlayerStore';
+import { SkipLink } from '../ui/SkipLink';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { role } = useAuth();
+  const { currentTrack } = usePlayerStore();
+  const mobileMenuRef = useFocusTrap(isMobileMenuOpen);
 
   const navigation = [
     { name: 'Home', href: '/' },
-    { name: 'Roster', href: '/about' },
     { name: 'Sync Catalog', href: '/catalog' },
     { name: 'Music Supervisor Access', href: '/supervisor' },
     { name: 'Beat Store', href: '/beat-store' },
@@ -20,6 +26,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col font-sans">
+      <SkipLink />
       <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
           <div className="flex h-16 items-center justify-between">
@@ -70,7 +77,7 @@ export function Layout() {
         </nav>
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-neutral-800 bg-neutral-900">
+          <div ref={mobileMenuRef} className="md:hidden border-t border-neutral-800 bg-neutral-900">
             <div className="space-y-1 px-4 pb-3 pt-2">
               {navigation.map((item) => (
                 <Link
@@ -103,7 +110,7 @@ export function Layout() {
         )}
       </header>
 
-      <main className="flex-1 w-full relative pb-28">
+      <main id="main-content" className={`flex-1 w-full relative ${currentTrack ? 'pb-28' : 'pb-8'}`}>
         <Outlet />
       </main>
 
@@ -128,10 +135,12 @@ export function Layout() {
               <Link to="/privacy" className="text-sm font-sans text-neutral-500 hover:text-white transition-colors">
                 Privacy
               </Link>
-              <span className="text-neutral-800 hidden sm:inline">|</span>
-              <Link to="/admin/login" className="text-sm font-sans text-neutral-500 hover:text-white transition-colors">
-                Admin
-              </Link>
+              {role === 'admin' && (<>
+                <span className="text-neutral-800 hidden sm:inline">|</span>
+                <Link to="/admin/login" className="text-sm font-sans text-neutral-500 hover:text-white transition-colors">
+                  Admin
+                </Link>
+              </>)}
             </div>
           </div>
         </div>

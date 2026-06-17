@@ -1,9 +1,8 @@
 import { motion } from 'motion/react';
-import { ArrowRight, Play, Disc3, Flame, Zap, BrainCircuit, ShieldCheck, Music } from 'lucide-react';
+import { ArrowRight, Play, Disc3, Flame, Zap, ShieldCheck, Music } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { usePlayerStore } from '../store/usePlayerStore';
 import { SEO } from '../components/SEO';
 import SpotifyEmbed from '../components/SpotifyEmbed';
 
@@ -12,8 +11,6 @@ export default function Home() {
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [featuredTracks, setFeaturedTracks] = useState<any[]>([]);
-
-  const { playTrack, pause } = usePlayerStore();
 
   useEffect(() => {
     let ignore = false;
@@ -39,34 +36,6 @@ export default function Home() {
     return () => {
       ignore = true;
     };
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from('tracks')
-          .select('id, title, track_files(file_type, storage_url)')
-          .limit(1)
-          .single();
-        if (ignore) return;
-        const track = data as
-          | { id: string; title: string; track_files: { file_type: string; storage_url: string }[] }
-          | null;
-        if (track) {
-          const audioUrl = track.track_files?.find(f => f.file_type === 'master')?.storage_url;
-          if (audioUrl) {
-            playTrack({ id: track.id, title: track.title, artist: 'Mr. Niro', url: audioUrl });
-            timer = setTimeout(() => { if (!ignore) pause(); }, 100);
-          }
-        }
-      } catch {
-        // .single() throws on empty table — silently ignore
-      }
-    })();
-    return () => { ignore = true; if (timer) clearTimeout(timer); };
   }, []);
 
   return (

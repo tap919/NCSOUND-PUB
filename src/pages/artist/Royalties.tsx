@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Download, FileText, ExternalLink } from 'lucide-react';
+import { FileText, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import type { RoyaltyStatement } from '../../types';
 import { supabase } from '../../lib/supabase';
 
 export default function Royalties() {
-  const [statements, setStatements] = useState<any[]>([]);
+  const [statements, setStatements] = useState<RoyaltyStatement[]>([]);
   const [loading, setLoading] = useState(true);
   const [artistId, setArtistId] = useState<string | null>(null);
   const { user } = useAuth();
@@ -53,7 +54,7 @@ export default function Royalties() {
           <p className="text-4xl font-heading text-orange-500 mt-2">{statements.length}</p>
         </div>
         <div className="bg-neutral-900 border border-neutral-800 p-6 flex flex-col justify-center">
-          <button onClick={async () => {
+          <button type="button" onClick={async () => {
             if (!artistId) return;
             try {
               const res = await fetch('/api/stripe/connect/onboard', {

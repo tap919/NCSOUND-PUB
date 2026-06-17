@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "clean": "npx rimraf dist server.js",
+    "clean": "npx rimraf dist",
     "typecheck": "tsc --noEmit",
     "lint": "npm run typecheck && npm run lint:eslint",
     "lint:eslint": "eslint .",
@@ -38,6 +42,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "node-cron": "^4.2.1",
@@ -50,7 +55,6 @@
     "resend": "^6.12.4",
     "stripe": "^22.2.0",
     "vaul": "^1.1.2",
-    "vite": "^6.2.3",
     "wavesurfer.js": "^7.12.7",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
@@ -69,9 +73,10 @@
     "@typescript-eslint/parser": "^8.61.1",
     "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
     "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "prettier": "^3.8.4",
@@ -80,7 +85,7 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.61.1",
-    "vite": "^6.2.3",
+    "vite": "^8.0.16",
     "vitest": "^4.1.8"
   }
 }

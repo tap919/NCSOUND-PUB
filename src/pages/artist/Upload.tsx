@@ -24,8 +24,7 @@ export default function Upload() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // @ts-ignore
-    const checked = type === 'checkbox' ? e.target.checked : undefined;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -160,7 +159,7 @@ export default function Upload() {
             </div>
 
             <div className="flex justify-end pt-6">
-              <button onClick={() => setStep(2)} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
+              <button type="button" onClick={() => setStep(2)} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
                 Next Step
               </button>
             </div>
@@ -207,10 +206,10 @@ export default function Upload() {
             </div>
 
             <div className="flex justify-between pt-6 border-t border-neutral-800">
-              <button onClick={() => setStep(1)} className="text-neutral-400 hover:text-white px-6 py-3 text-sm font-bold uppercase tracking-widest transition-colors">
+              <button type="button" onClick={() => setStep(1)} className="text-neutral-400 hover:text-white px-6 py-3 text-sm font-bold uppercase tracking-widest transition-colors">
                 Back
               </button>
-              <button onClick={() => setStep(3)} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
+              <button type="button" onClick={() => setStep(3)} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
                 Next Step
               </button>
             </div>
@@ -254,10 +253,10 @@ export default function Upload() {
             </div>
 
             <div className="flex justify-between pt-6 border-t border-neutral-800">
-              <button onClick={() => setStep(2)} className="text-neutral-400 hover:text-white px-6 py-3 text-sm font-bold uppercase tracking-widest transition-colors">
+              <button type="button" onClick={() => setStep(2)} className="text-neutral-400 hover:text-white px-6 py-3 text-sm font-bold uppercase tracking-widest transition-colors">
                 Back
               </button>
-              <button disabled={loading} onClick={handleSubmit} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:shadow-[0_0_25px_rgba(249,115,22,0.6)] disabled:opacity-50">
+              <button type="submit" disabled={loading} onClick={handleSubmit} className="bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:shadow-[0_0_25px_rgba(249,115,22,0.6)] disabled:opacity-50">
                 {loading ? 'Submitting...' : 'Submit Track'}
               </button>
             </div>

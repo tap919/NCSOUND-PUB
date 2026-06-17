@@ -204,6 +204,7 @@ export interface Database {
           visibility: string
           created_at: string
           updated_at: string
+          track_files?: { file_type: string; storage_url: string }[]
         }
         Insert: {
           id?: string
@@ -520,6 +521,23 @@ export interface Database {
           lease_price: number | null
           exclusive_price: number | null
           status: string
+          genre: string | null
+          subgenres: string[] | null
+          bpm: number | null
+          musical_key: string | null
+          mood_tags: string[] | null
+          energy: string | null
+          duration_seconds: number | null
+          audio_url: string | null
+          cover_art_url: string | null
+          stems_available: boolean | null
+          ai_generated: boolean | null
+          sync_suitability: string | null
+          description: string | null
+          instrumentation: string[] | null
+          is_first_wave: boolean | null
+          first_wave_price: number | null
+          split_percentage: number | null
           created_at: string
           updated_at: string
         }
@@ -530,6 +548,23 @@ export interface Database {
           lease_price?: number | null
           exclusive_price?: number | null
           status?: string
+          genre?: string | null
+          subgenres?: string[] | null
+          bpm?: number | null
+          musical_key?: string | null
+          mood_tags?: string[] | null
+          energy?: string | null
+          duration_seconds?: number | null
+          audio_url?: string | null
+          cover_art_url?: string | null
+          stems_available?: boolean | null
+          ai_generated?: boolean | null
+          sync_suitability?: string | null
+          description?: string | null
+          instrumentation?: string[] | null
+          is_first_wave?: boolean | null
+          first_wave_price?: number | null
+          split_percentage?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -540,6 +575,23 @@ export interface Database {
           lease_price?: number | null
           exclusive_price?: number | null
           status?: string
+          genre?: string | null
+          subgenres?: string[] | null
+          bpm?: number | null
+          musical_key?: string | null
+          mood_tags?: string[] | null
+          energy?: string | null
+          duration_seconds?: number | null
+          audio_url?: string | null
+          cover_art_url?: string | null
+          stems_available?: boolean | null
+          ai_generated?: boolean | null
+          sync_suitability?: string | null
+          description?: string | null
+          instrumentation?: string[] | null
+          is_first_wave?: boolean | null
+          first_wave_price?: number | null
+          split_percentage?: number | null
           created_at?: string
           updated_at?: string
         }

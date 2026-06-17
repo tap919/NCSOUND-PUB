@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { BrainCircuit, ChevronLeft, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { BrainCircuit, ChevronLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import type { Brief } from '../../types';
 
 export default function Briefs() {
-  const [briefs, setBriefs] = useState<any[]>([]);
+  const [briefs, setBriefs] = useState<Brief[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBrief, setSelectedBrief] = useState<any>(null);
-  const [matches, setMatches] = useState<any[]>([]);
+  const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
+  const [matches, setMatches] = useState<{ track_id: string; title: string; score: number }[]>([]);
   const [matching, setMatching] = useState(false);
 
   useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('briefs').select('*').order('created_at', { ascending: false }); if (!ignore) { if (data) setBriefs(data); setLoading(false); } })(); return () => { ignore = true; }; }, []);
@@ -73,7 +74,7 @@ export default function Briefs() {
                     </p>
                   )}
                   <div className="flex gap-2 mt-3">
-                    <button onClick={(e) => { e.stopPropagation(); updateStatus(b.id, b.status === 'matched' ? 'open' : 'matched'); }} className="flex items-center text-[10px] font-bold uppercase tracking-widest bg-orange-500 text-black px-2 py-1 hover:bg-orange-400 transition-colors">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); updateStatus(b.id, b.status === 'matched' ? 'open' : 'matched'); }} className="flex items-center text-[10px] font-bold uppercase tracking-widest bg-orange-500 text-black px-2 py-1 hover:bg-orange-400 transition-colors">
                       <ArrowRight className="w-3 h-3 mr-1" /> {b.status === 'matched' ? 'Reopen' : 'Mark Matched'}
                     </button>
                   </div>

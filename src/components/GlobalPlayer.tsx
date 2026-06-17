@@ -5,7 +5,7 @@ import WaveSurfer from 'wavesurfer.js';
 import { usePlayerStore } from '../store/usePlayerStore';
 
 export function GlobalPlayer() {
-  const { currentTrack, isPlaying, volume, isMuted, pause, resume, setVolume, toggleMute } = usePlayerStore();
+  const { currentTrack, isPlaying, volume, isMuted, pause, resume, toggleMute } = usePlayerStore();
   const [duration, setDuration] = useState('0:00');
   const [currentTime, setCurrentTime] = useState('0:00');
   
@@ -63,7 +63,7 @@ const formatTime = (timeInSeconds: number) => {
       ignore = true;
       ws.destroy();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // WaveSurfer instance is created once; volume updates handled separately
 
   useEffect(() => {
     if (wavesurfer && currentTrack) {
@@ -128,16 +128,17 @@ const formatTime = (timeInSeconds: number) => {
         {/* Controls */}
         <div className="flex flex-col items-center flex-1 max-w-xl">
           <div className="flex items-center gap-4 sm:gap-6 mb-1">
-            <button className="text-neutral-400 hover:text-orange-500 transition-colors">
+            <button type="button" className="text-neutral-400 hover:text-orange-500 transition-colors">
               <SkipBack className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
             </button>
             <button 
+              type="button"
               onClick={togglePlay}
               className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center bg-orange-500 hover:bg-orange-400 text-black rounded-full transition-transform hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(249,115,22,0.4)]"
             >
               {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-current" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-1" />}
             </button>
-            <button className="text-neutral-400 hover:text-orange-500 transition-colors">
+            <button type="button" className="text-neutral-400 hover:text-orange-500 transition-colors">
               <SkipForward className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
             </button>
           </div>
@@ -151,14 +152,14 @@ const formatTime = (timeInSeconds: number) => {
 
         {/* Extra Controls */}
         <div className="hidden md:flex flex-row items-center justify-end gap-5 w-1/4">
-          <button className="text-neutral-400 hover:text-orange-500 transition-colors">
+          <button type="button" className="text-neutral-400 hover:text-orange-500 transition-colors">
             <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <button className="text-neutral-400 hover:text-orange-500 transition-colors">
+          <button type="button" className="text-neutral-400 hover:text-orange-500 transition-colors">
             <ListMusic className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <div className="flex items-center gap-2 w-24">
-            <button onClick={toggleMute} className="text-neutral-400 hover:text-orange-500 transition-colors">
+            <button type="button" onClick={toggleMute} className="text-neutral-400 hover:text-orange-500 transition-colors">
               {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
             <div className="h-1.5 flex-1 bg-neutral-800 rounded-full overflow-hidden">

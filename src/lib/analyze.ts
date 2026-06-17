@@ -65,7 +65,7 @@ export function detectBpm(samples: Float32Array, sampleRate: number): number {
  * Simple key detection using chroma distribution.
  * Maps pitch classes to the 12 keys (C, C#, D, ..., B).
  */
-export function detectKey(samples: Float32Array, sampleRate: number): { key: string; confidence: number } {
+export function detectKey(samples: Float32Array, _sampleRate: number): { key: string; confidence: number } {
   // Simple spectral centroid-based key approximation
   // For a real implementation, we'd compute a full chromagram
   // This is a simplified heuristic that works for common cases

@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
+import type { Registration } from '../../types';
 
 export default function RegistrationStatus() {
-  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 

@@ -32,7 +32,7 @@ export function ErrorFallback({
       <AlertCircle className="w-10 h-10 text-red-500" />
       <p className="text-sm font-sans text-neutral-300 max-w-md">{message}</p>
       {onRetry && (
-        <button onClick={onRetry} className="flex items-center gap-2 bg-neutral-950 border border-neutral-700 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-neutral-800 transition-colors">
+        <button type="button" onClick={onRetry} className="flex items-center gap-2 bg-neutral-950 border border-neutral-700 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-neutral-800 transition-colors">
           <RefreshCw className="w-3 h-3" /> Retry
         </button>
       )}
@@ -58,7 +58,7 @@ export function EmptyState({
       <h3 className="text-xl font-heading uppercase tracking-wider text-white">{title}</h3>
       <p className="text-sm font-sans text-neutral-500 max-w-md">{description}</p>
       {action && (
-        <button onClick={action.onClick} className="bg-orange-500 text-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors mt-2">
+        <button type="button" onClick={action.onClick} className="bg-orange-500 text-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors mt-2">
           {action.label}
         </button>
       )}

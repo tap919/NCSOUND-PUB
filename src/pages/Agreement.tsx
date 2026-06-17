@@ -1,5 +1,4 @@
 import { ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 

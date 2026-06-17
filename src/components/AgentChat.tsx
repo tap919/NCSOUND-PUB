@@ -56,6 +56,7 @@ export default function AgentChat({ context }: AgentChatProps) {
   if (!open) {
     return (
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 z-50 bg-orange-500 text-black p-4 rounded-full shadow-2xl hover:bg-orange-400 transition-all hover:scale-110"
         title="Open AI Agent"
@@ -74,10 +75,10 @@ export default function AgentChat({ context }: AgentChatProps) {
           <span className="text-sm font-bold uppercase tracking-widest text-white">Agent</span>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setMinimized(!minimized)} className="text-neutral-500 hover:text-white p-1">
+          <button type="button" onClick={() => setMinimized(!minimized)} className="text-neutral-500 hover:text-white p-1">
             <ChevronDown className={`w-4 h-4 transition-transform ${minimized ? 'rotate-180' : ''}`} />
           </button>
-          <button onClick={() => setOpen(false)} className="text-neutral-500 hover:text-white p-1">
+          <button type="button" onClick={() => setOpen(false)} className="text-neutral-500 hover:text-white p-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -124,6 +125,7 @@ export default function AgentChat({ context }: AgentChatProps) {
               className="flex-1 bg-neutral-950 border border-neutral-800 px-3 py-2 text-white text-sm focus:border-orange-500 outline-none font-sans"
             />
             <button
+              type="button"
               onClick={send}
               disabled={loading || !input.trim()}
               className="bg-orange-500 text-black p-2 hover:bg-orange-400 disabled:opacity-50 transition-colors"

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Upload, Music, CheckCircle2, AlertCircle, Loader2, BarChart3 } from 'lucide-react';
+import { Upload, CheckCircle2, Loader2, BarChart3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
 export default function PlaylistSubmit() {
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
+  const [, setStep] = useState(1);
   const [credits, setCredits] = useState<{ remaining: number; monthly_limit: number } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -139,7 +139,7 @@ export default function PlaylistSubmit() {
               <label className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2 block">Description</label>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 text-white focus:border-orange-500 outline-none font-sans resize-none" placeholder="Tell us about your track..." />
             </div>
-            <button onClick={handleAnalyze} disabled={analyzing} className="bg-orange-500 text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center gap-2">
+            <button type="button" onClick={handleAnalyze} disabled={analyzing} className="bg-orange-500 text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center gap-2">
               {analyzing ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</> : 'Analyze Track'}
             </button>
           </div>
@@ -183,7 +183,7 @@ export default function PlaylistSubmit() {
                   </div>
                 </div>
               )}
-              <button onClick={handleSubmit} disabled={submitting || !user} className="bg-orange-500 text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center gap-2">
+              <button type="button" onClick={handleSubmit} disabled={submitting || !user} className="bg-orange-500 text-black px-8 py-3 font-bold uppercase tracking-widest text-sm hover:bg-orange-400 transition-colors disabled:opacity-50 flex items-center gap-2">
                 {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Upload className="w-4 h-4" /> Submit to Playlist</>}
               </button>
               {!user && <p className="text-xs text-neutral-500 font-sans">Sign in to submit your track.</p>}

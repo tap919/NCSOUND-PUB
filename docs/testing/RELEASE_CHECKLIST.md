@@ -1,47 +1,14 @@
 # Release Checklist
 
-## Pre-Release
+> **ℹ️ This checklist has been superseded by `DEPLOY_CHECKLIST.md`** which contains the full pre-deploy, deploy, and post-deploy steps for v0.1.0.
+>
+> The sign-off form has been moved to `docs/release/SIGNOFF.md`.
 
-### Code quality
-- [ ] `npm run lint` passes (tsc --noEmit)
-- [ ] `npm run test` passes (Vitest)
-- [ ] `npm run test:e2e` passes (Playwright)
-- [ ] No hardcoded secrets committed
-- [ ] `.env.example` up to date with all required vars
+## Quick reference
 
-### Testing
-- [ ] Unit tests written for all changed code
-- [ ] Integration tests cover changed boundaries
-- [ ] Regression test added for every bug fix since last release
-- [ ] E2E smoke pack passes
-- [ ] Error handling reviewed for new features
-
-### Documentation
-- [ ] README updated if behavior changed
-- [ ] DEPLOY.md updated if deployment steps changed
-- [ ] Environment variables documented in `.env.example`
-
-### Infrastructure
-- [ ] Build runs cleanly (`npm run build`)
-- [ ] CI pipeline passed on latest commit
-- [ ] Supabase migrations applied
-
-## Release
-
-- [ ] Version bumped (if applicable)
-- [ ] Tag created
-- [ ] Release notes drafted
-- [ ] Smoke test after deploy
-
-## Post-Release
-
-- [ ] Monitoring verified
-- [ ] Known limitations documented
-- [ ] Test completion records filed
-
-## Sign-off
-
-- **Product:** NcSound Publishing
-- **Engineering owner:** __________________
-- **QA owner:** __________________
-- **Date:** __________________
+| Task | Location |
+|---|---|
+| Deploy checklist | `docs/testing/DEPLOY_CHECKLIST.md` |
+| Release notes | `docs/release/v0.1.0.md` |
+| Sign-off | `docs/release/SIGNOFF.md` |
+| Monitoring setup | `docs/operations/MONITORING.md` |

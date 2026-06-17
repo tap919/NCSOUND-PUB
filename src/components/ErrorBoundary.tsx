@@ -33,7 +33,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </div>
             <h2 className="text-2xl font-heading uppercase tracking-wider text-white mb-2">Something went wrong</h2>
             <p className="text-neutral-400 font-sans text-sm mb-6">An unexpected error occurred. Please try refreshing the page.</p>
-            <button onClick={() => window.location.reload()} className="bg-orange-500 text-black px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
+            <button type="button" onClick={() => window.location.reload()} className="bg-orange-500 text-black px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors">
               Refresh Page
             </button>
           </div>

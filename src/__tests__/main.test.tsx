@@ -26,6 +26,7 @@ vi.mock('react-helmet-async', () => ({
 
 describe('main', () => {
   it('module can be imported', async () => {
+    document.body.innerHTML = '<div id="root"></div>';
     await expect(import('../main')).resolves.toBeDefined();
   });
 });

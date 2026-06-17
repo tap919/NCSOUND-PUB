@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('useAuth', () => {
   describe('session state', () => {
@@ -24,7 +24,7 @@ describe('useAuth', () => {
       const signIn = vi.fn().mockResolvedValue({ data: null, error: { message: 'Invalid credentials' } });
       const result = await signIn({ email: 'test@test.com', password: 'wrong' });
       expect(result.error).not.toBeNull();
-      expect(result.error!.message).toBe('Invalid credentials');
+      expect(result.error?.message).toBe('Invalid credentials');
     });
   });
 

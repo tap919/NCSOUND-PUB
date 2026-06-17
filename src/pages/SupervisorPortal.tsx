@@ -119,7 +119,7 @@ export default function SupervisorPortal() {
                 <label className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2 block">Access Key</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-neutral-950 border border-neutral-800 px-4 py-4 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none font-sans" />
               </div>
-              <button disabled={loading} className="w-full bg-orange-500 px-4 py-4 text-sm font-bold uppercase tracking-widest text-black hover:bg-orange-400 transition-colors shadow-lg disabled:opacity-50">
+              <button type="submit" disabled={loading} className="w-full bg-orange-500 px-4 py-4 text-sm font-bold uppercase tracking-widest text-black hover:bg-orange-400 transition-colors shadow-lg disabled:opacity-50">
                 {loading ? 'Verifying...' : 'Enter Catalog'}
               </button>
             </form>

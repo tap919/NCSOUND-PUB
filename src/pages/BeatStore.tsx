@@ -1,12 +1,13 @@
-import { ShoppingCart, Headphones, Zap, ShieldCheck, Sparkles, Clock, Filter } from 'lucide-react';
+import { ShoppingCart, Headphones, Zap, ShieldCheck, Sparkles, Filter } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import type { BeatStoreProduct } from '../types';
 
 const GENRES = ['All', 'Soul', 'Funk', 'R&B', 'Hip-Hop', 'Trap', 'Drill', 'Jazz', 'Cinematic', 'Electronic'];
 
 export default function BeatStore() {
-  const [beats, setBeats] = useState<any[]>([]);
+  const [beats, setBeats] = useState<BeatStoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activeGenre, setActiveGenre] = useState('All');
@@ -71,7 +72,7 @@ export default function BeatStore() {
         <div className="flex flex-wrap gap-2 mb-8">
           <Filter className="w-4 h-4 text-neutral-500 mr-1 self-center" />
           {GENRES.map(g => (
-            <button key={g} onClick={() => setActiveGenre(g)}
+            <button type="button" key={g} onClick={() => setActiveGenre(g)}
               className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 border transition-colors ${
                 activeGenre === g ? 'bg-orange-500 text-black border-orange-500' : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-600'
               }`}
@@ -135,6 +136,7 @@ export default function BeatStore() {
                     </div>
                     <div className="col-span-2 flex justify-center sm:justify-end">
                       <button
+                        type="button"
                         onClick={() => handleCheckout(beat)}
                         disabled={loadingId === beat.id}
                         className="flex items-center text-[10px] font-bold uppercase tracking-widest bg-neutral-800 hover:bg-orange-500 text-white hover:text-black px-4 py-2 border border-neutral-700 hover:border-orange-500 transition-colors disabled:opacity-50"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, ChevronLeft, CheckCircle2, Link2, Plus, Trash2, Globe, Music, Youtube, Camera, Headphones, MessageCircle } from 'lucide-react';
+import { Save, ChevronLeft, Link2, Plus, Trash2, Globe, Music, Youtube, Camera, Headphones, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import type { ArtistLink } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -21,9 +22,8 @@ const PLATFORMS = [
 export default function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [artistId, setArtistId] = useState<string | null>(null);
-  const [links, setLinks] = useState<any[]>([]);
+  const [links, setLinks] = useState<ArtistLink[]>([]);
   const [form, setForm] = useState({
     stage_name: '',
     legal_name: '',
@@ -162,7 +162,7 @@ export default function Profile() {
         <div className="bg-neutral-900 border border-neutral-800 p-8 space-y-6">
           <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
             <h2 className="text-lg font-heading uppercase tracking-wider text-white">Connected Platforms</h2>
-            <button onClick={addLink} className="flex items-center text-xs font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400 transition-colors">
+            <button type="button" onClick={addLink} className="flex items-center text-xs font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400 transition-colors">
               <Plus className="w-4 h-4 mr-1" /> Add Link
             </button>
           </div>
@@ -182,7 +182,7 @@ export default function Profile() {
                     {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                   <input value={link.url} onChange={e => updateLink(link.id, 'url', e.target.value)} placeholder="https://..." className="flex-1 bg-transparent border-b border-neutral-700 text-white text-sm px-2 py-1 outline-none focus:border-orange-500 font-sans" />
-                  <button onClick={() => removeLink(link.id)} className="text-neutral-600 hover:text-red-500 transition-colors flex-shrink-0">
+                  <button type="button" onClick={() => removeLink(link.id)} className="text-neutral-600 hover:text-red-500 transition-colors flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -193,7 +193,7 @@ export default function Profile() {
 
         {/* Save */}
         <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
-          <button onClick={handleSave} disabled={loading} className="flex items-center bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors disabled:opacity-50">
+          <button type="button" onClick={handleSave} disabled={loading} className="flex items-center bg-orange-500 text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-orange-400 transition-colors disabled:opacity-50">
             <Save className="w-4 h-4 mr-2" /> {loading ? 'Saving...' : 'Save Profile'}
           </button>
         </div>

@@ -114,7 +114,8 @@ export function proRegistrationEmail(data: ProRegistrationNotification): EmailPa
   };
 }
 
-export function onboardingEmail(artistName: string): EmailPayload {
+export function onboardingEmail(artistName: string, appUrl?: string): EmailPayload {
+  const origin = appUrl || process.env.APP_URL || 'http://localhost:3000';
   return {
     to: '',
     subject: `Welcome to NcSound Publishing, ${artistName}!`,
@@ -131,7 +132,7 @@ export function onboardingEmail(artistName: string): EmailPayload {
           <li><strong style="color:#fff">Connect Stripe</strong> to receive sync licensing payouts</li>
           <li><strong style="color:#fff">Link your platforms</strong> (Spotify, SoundCloud, Bandcamp) for income tracking</li>
         </ol>
-        <a href="${window?.location?.origin || ''}/artist/dashboard" style="display:inline-block;margin-top:16px;background:#f97316;color:#000;padding:12px 24px;font-weight:bold;font-size:12px;letter-spacing:1px;text-transform:uppercase;text-decoration:none">Go to Dashboard</a>
+        <a href="${origin}/artist/dashboard" style="display:inline-block;margin-top:16px;background:#f97316;color:#000;padding:12px 24px;font-weight:bold;font-size:12px;letter-spacing:1px;text-transform:uppercase;text-decoration:none">Go to Dashboard</a>
       </div>`,
   };
 }

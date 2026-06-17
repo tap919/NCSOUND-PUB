@@ -1,4 +1,4 @@
-import { Upload, Music, DollarSign, LogOut, BarChart3, FileText, TrendingUp, Radio, Globe, Headphones, ExternalLink } from 'lucide-react';
+import { Upload, Music, DollarSign, LogOut, BarChart3, FileText, Radio, ExternalLink } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -79,18 +79,21 @@ export default function Dashboard() {
         </div>
         <div className="py-4 flex-1">
           <button 
+            type="button"
             onClick={() => setActiveTab('Catalog')}
             className={`w-full flex items-center px-6 py-4 text-sm font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'Catalog' ? 'border-orange-500 text-orange-500 bg-black/20' : 'border-transparent text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
           >
             <Music className="w-4 h-4 mr-3" /> My Catalog
           </button>
           <button 
+            type="button"
             onClick={() => setActiveTab('Royalties')}
             className={`w-full flex items-center px-6 py-4 text-sm font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'Royalties' ? 'border-orange-500 text-orange-500 bg-black/20' : 'border-transparent text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
           >
             <DollarSign className="w-4 h-4 mr-3" /> Royalties
           </button>
           <button 
+            type="button"
             onClick={() => setActiveTab('Analytics')}
             className={`w-full flex items-center px-6 py-4 text-sm font-bold uppercase tracking-widest transition-colors border-l-2 ${activeTab === 'Analytics' ? 'border-orange-500 text-orange-500 bg-black/20' : 'border-transparent text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
           >
@@ -119,7 +122,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="p-4 border-t border-neutral-800">
-          <button onClick={handleSignOut} className="w-full flex items-center px-2 py-2 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">
+          <button type="button" onClick={handleSignOut} className="w-full flex items-center px-2 py-2 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">
             <LogOut className="w-4 h-4 mr-3" /> Sign Out
           </button>
         </div>
@@ -354,6 +357,7 @@ export default function Dashboard() {
                     View Statements
                   </Link>
                   <button
+                    type="button"
                     onClick={async () => {
                       if (!artistId) return;
                       try {

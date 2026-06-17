@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Headphones, ExternalLink, Globe, Music, Youtube, Camera, MessageCircle, Link2 } from 'lucide-react';
+import { Headphones, Globe, Music, Youtube, Camera, MessageCircle, Link2 } from 'lucide-react';
 import { BandcampDiscography } from './BandcampDiscography';
 
 interface SocialLink {

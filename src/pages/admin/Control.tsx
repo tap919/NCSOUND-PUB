@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Activity, Database, Users, TrendingUp, Music, BarChart3, Radio, DollarSign, Globe, Clock, Cpu, HardDrive, ArrowUp, ArrowDown } from 'lucide-react';
+import { Activity, Database, Users, Music, BarChart3, Radio, DollarSign, Globe, Clock, Cpu, ArrowUp } from 'lucide-react';
 
 export default function AdminControl() {
   const [health, setHealth] = useState<any>(null);
@@ -127,7 +127,7 @@ function MetricCard({ icon: Icon, label, value }: { icon: any; label: string; va
 
 function ActionButton({ label, icon: Icon, onClick }: { label: string; icon: any; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 bg-black/50 border border-neutral-800 px-4 py-3 hover:bg-neutral-800 transition-colors text-left">
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 bg-black/50 border border-neutral-800 px-4 py-3 hover:bg-neutral-800 transition-colors text-left">
       <Icon className="w-4 h-4 text-orange-500 flex-shrink-0" />
       <span className="text-sm font-bold uppercase tracking-widest text-white">{label}</span>
     </button>

@@ -6,6 +6,14 @@ vi.mock('../../GlobalPlayer', () => ({
   GlobalPlayer: () => <div>Player</div>,
 }));
 
+vi.mock('../../../hooks/useAuth', () => ({
+  useAuth: () => ({ role: 'admin', user: { id: '1' }, loading: false, session: null, signOut: vi.fn() }),
+}));
+
+vi.mock('../../../store/usePlayerStore', () => ({
+  usePlayerStore: () => ({ currentTrack: null }),
+}));
+
 import { Layout } from '../../layout/Layout';
 
 function renderLayout() {
@@ -24,7 +32,7 @@ describe('Layout', () => {
   it('renders navigation links', () => {
     renderLayout();
     expect(screen.getByText('Home')).toBeInTheDocument();
-    expect(screen.getByText('Roster')).toBeInTheDocument();
+    expect(screen.getByText('Sync Catalog')).toBeInTheDocument();
     expect(screen.getByText('Submit Your Catalog')).toBeInTheDocument();
   });
 

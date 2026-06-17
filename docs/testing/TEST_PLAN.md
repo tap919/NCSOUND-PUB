@@ -15,54 +15,63 @@ NcSound Publishing — sync licensing platform, beat store, and artist roster ma
 | Security | Manual + automated | Input validation, auth boundaries, injection, secret scanning | Engineering + Security |
 | Accessibility | axe-core / manual | Keyboard nav, ARIA labels, contrast, focus management | Engineering + QA |
 
-## 25% Phase Test Plan
+## 100% Phase Coverage
 
-### Unit tests
-- [ ] `src/lib/supabase.ts` — client initialization, anon key presence
-- [ ] `src/store/usePlayerStore.ts` — play/pause/volume/mute state transitions
-- [ ] `src/utils.test.ts` — existing coverage for formatTime + Zod schemas
-- [ ] GlobalPlayer component — renders when track set, hidden when null
-- [ ] BeatStore component — renders beat list, genre filtering, empty state
-- [ ] Home component — renders listen section, featured tracks, error state
-- [ ] NiroMusic component — album loading, track play/pause/next
-- [ ] Roster pages — all 4 roster pages render with correct social links
-- [ ] ErrorBoundary — catches errors, renders fallback UI
-- [ ] SEO component — renders meta tags with correct title/description
+### Unit tests (11 files)
+- `src/lib/supabase.ts` — client initialization, anon key presence
+- `src/store/usePlayerStore.ts` — play/pause/volume/mute state transitions
+- `src/utils.test.ts` — formatTime + Zod schemas
+- `src/lib/supabase-queries.test.ts` — query patterns for beat_store_products, tracks, albums
+- `src/lib/contracts.test.ts` — data model contract validation
+- Rate limiter tests
 
-### Integration tests
-- [ ] Supabase client — query returns data from beat_store_products
-- [ ] Supabase client — tracks query with nested album relationship
-- [ ] Contact form submission — valid payload inserts successfully
-- [ ] BandcampDiscography — parses API response into releases
-- [ ] SpotifyEmbed — renders correct iframe URL from artist ID
-- [ ] API health check — server responds 200 at /api/health
+### Component tests (28 files)
+- All public pages: Home, Catalog, BeatStore, About, NiroMusic, Story, NotFound, Privacy, Terms
+- Admin pages: Dashboard, Control, Briefs, Inbox, LicenseRequests, SupervisorRequests
+- Artist pages: Dashboard, Upload, Profile, Royalties, UploadBeat, RegistrationStatus, ProGuide
+- Shared: SpotifyEmbed, BandcampDiscography, Layout, App, Toast, GlobalPlayer
+- ErrorBoundary, SEO
 
-### E2E smoke tests
-- [ ] Home page loads without console errors
-- [ ] Navigation — all public pages reachable
-- [ ] Beat Store — displays beat list from DB
-- [ ] Roster pages — each artist page loads with links
-- [ ] Niro Music — albums load, tracks playable
-- [ ] Contact form — valid submission shows success toast
+### Integration tests (4 files)
+- API routes: health, checkout, license checkout, contact, agent chat, email, analytics
+- Supabase query contracts
+- BandcampDiscography API parsing
+- SpotifyEmbed URL generation
 
-### Security tests
-- [ ] No hardcoded secrets in source code
-- [ ] Supabase anon key restricted to SELECT only
-- [ ] XSS vectors checked in contact form inputs
-- [ ] RLS policies verified on public tables
+### E2E tests (5 Playwright spec files)
+- Auth: artist login/logout/session, admin login, protected route redirects
+- Workflows: browse → catalog → license, beat store checkout, contact form, agreement, supervisor register, 404
+- Page smoke: all public pages load without errors
+- User journeys: end-to-end flows across multiple pages
+- A11y: axe-core scans on 16 public pages
 
-## 50% Phase Plan (Future)
+### Security tests (2 files)
+- OWASP common payloads: SQL injection, XSS, command injection, path traversal
+- Sanitize error utility: API key redaction, unicode safety, stack trace removal
 
-- Component unit coverage > 60%
-- Integration coverage for all API routes
-- E2E coverage for auth flows, CRUD operations
-- Performance baselines captured
-- Accessibility smoke on all public pages
+### Performance tests
+- formatTime: 10k iterations < 100ms
+- Zod validation: 1k iterations < 200ms
+- Array filtering: 1k items < 10ms
 
-## 100% Phase Plan (Future)
+### Regression tests
+- Home crash: Play is not defined (missing import)
+- GlobalPlayer shows mock data when no track loaded
+- BeatStore play button removed (beats for sync only)
+- Featured tracks crash: stale mock data on Home
+- Home JSX parse error: missing div wrapper
 
-- Full automated coverage for all critical workflows
-- Security review completed
-- Performance and soak testing completed
-- Recovery and rollback tested
-- Release validation completed
+## Infrastructure
+
+- **CI:** GitHub Actions — typecheck, lint, test-with-coverage, build, security audit (npm audit + gitleaks), E2E (Chromium + Firefox + WebKit)
+- **Coverage thresholds:** 31% (statements), 24% (branches), 26% (functions), 35% (lines)
+- **Test count:** ~295 Vitest tests + ~30 Playwright E2E tests
+- **Supabase:** RLS enabled on all 41 tables
+
+## Known Gaps
+
+- E2E auth tests require seeded Supabase test accounts (skip without env vars)
+- Stripe checkout in test mode only
+- No visual regression testing (Percy/Chromatic)
+- No server-side API integration tests (supertest not installed)
+- 345 lint warnings (pre-existing @typescript-eslint/no-explicit-any)

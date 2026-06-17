@@ -4,16 +4,16 @@ import { createServer as createViteServer } from "vite";
 import 'dotenv/config';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import cron from 'node-cron';
 
 import { sanitizeError } from './src/lib/sanitize';
-
-function missingFields(body: any, fields: string[]): string | null {
-  for (const f of fields) {
-    if (body === undefined || body === null || body[f] === undefined || body[f] === null || body[f] === '') return `${f} is required`;
-  }
-  return null;
-}
+import { sanitizePrompt, sanitizeMessages } from './src/lib/validation';
+import { emailSchema, geminiSchema, agentChatSchema } from './src/lib/schemas';
+import { SPLIT } from './src/lib/constants';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type Stripe from 'stripe';
+import { createRequireAdmin } from './src/middleware/auth';
 
 async function startServer() {
   // NODE_ENV must be set by the environment — never default to production here.
@@ -22,6 +22,11 @@ async function startServer() {
   // development: npm run dev (NODE_ENV=development)
 
   // Env validation — warn at startup, hard block critical paths at runtime
+  const GEMINI_KEY_PATTERN = /^AIza[A-Za-z0-9_-]{35}$/;
+  if (process.env.GEMINI_API_KEY && !GEMINI_KEY_PATTERN.test(process.env.GEMINI_API_KEY)) {
+    console.warn('⚠ GEMINI_API_KEY format appears invalid — expected 39-char key starting with AIza');
+  }
+
   const ENV_CHECKS = [
     { key: 'VITE_SUPABASE_URL', name: 'Supabase URL', critical: true },
     { key: 'VITE_SUPABASE_ANON_KEY', name: 'Supabase Anon Key', critical: true },
@@ -42,6 +47,14 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Log level — numeric syslog levels (0=emergency, 7=debug)
+  const LOG_LEVEL = parseInt(process.env.LOG_LEVEL || '6', 10);
+  function log(level: number, msg: string, ...rest: any[]) {
+    if (level > LOG_LEVEL) return;
+    const fn = level <= 3 ? console.error : level <= 4 ? console.warn : console.log;
+    fn(`[${level}] ${msg}`, ...rest);
+  }
+
   // Initialize Stripe + Supabase clients once (not per-request)
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const stripeModule = stripeKey ? await (async () => {
@@ -56,9 +69,14 @@ async function startServer() {
     return createClient(supabaseUrl, supabaseServiceKey);
   })() : null;
 
+  const requireAdmin = createRequireAdmin(supabaseClient);
+
   // CORS
+  const corsOrigins = process.env.NODE_ENV === 'production'
+    ? (process.env.APP_URL || 'http://localhost:3000').split(',').map(s => s.trim())
+    : '*';
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? process.env.APP_URL || '' : '*',
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'OPTIONS'],
   }));
 
@@ -66,25 +84,65 @@ async function startServer() {
   // Serve assets/ directory directly (outside dist) so images never need copying
   app.use('/assets', express.static(path.join(process.cwd(), 'assets'), { maxAge: '1d' }));
 
-  // Security headers
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // Security headers — helmet replaces manual X-Content-Type-Options, X-Frame-Options, etc.
+  app.use(helmet({
+    contentSecurityPolicy: false, // Vite injects inline scripts in dev; CSP is managed separately
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // Admin dashboard origin restriction — only localhost and production domain
+  const allowedAdminOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    ...(process.env.APP_URL ? [process.env.APP_URL] : []),
+  ];
+  app.use('/api/admin', (req, res, next) => {
+    const origin = req.get('origin') || req.get('referer') || '';
+    const allowed = allowedAdminOrigins.some(a => origin.startsWith(a));
+    if (!allowed) return res.status(403).json({ error: 'Admin access restricted' });
     next();
   });
 
-  // Rate limiting â€” webhook is excluded (Stripe retries must not be throttled)
+  // Trust proxy for correct IP detection behind reverse proxies
+  app.set('trust proxy', 1);
+
+  // Rate limiting — granular per-endpoint
   const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 30,
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Try again in a minute.' },
     skip: (req) => req.path.startsWith('/api/webhook'),
   });
   app.use('/api/', apiLimiter);
+
+  const webhookLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests.' },
+  });
+
+  const geminiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many AI requests. Slow down.' },
+    keyGenerator: (req) => req.ip || 'unknown',
+  });
+
+  const agentLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many chat requests.' },
+    keyGenerator: (req) => req.ip || 'unknown',
+  });
+
   // Health check exempt from rate limiting
   const healthLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -103,22 +161,19 @@ async function startServer() {
   });
 
   // Stripe Webhook Endpoint
-  app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
+  app.post("/api/webhook", webhookLimiter, express.raw({ type: "application/json" }), async (req, res) => {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (!stripeKey || !webhookSecret) {
+    if (!stripeModule || !webhookSecret) {
       return res.status(500).send("Stripe is not configured.");
     }
 
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
     const sig = req.headers["stripe-signature"];
 
-    let event;
+    let event: Stripe.Event;
     try {
       if (!sig) throw new Error("No signature");
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err: any) {
       console.error("Webhook Error:", err.message);
       return res.status(400).send("Invalid signature");
@@ -126,9 +181,10 @@ async function startServer() {
 
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object;
-        const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
+        const session = event.data.object as Stripe.Checkout.Session;
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+        if (!supabaseUrl || !supabaseKey) throw new Error('Supabase not configured');
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -160,7 +216,7 @@ async function startServer() {
           // Generate license PDF
           if (purchase) {
         try {
-          await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/license/pdf`, {
+          await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/license/doc`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -178,10 +234,10 @@ async function startServer() {
 
         // Subscription
         if (userId) {
-          const subscription = event.data.object as any;
+          const subId = session.subscription as string | null;
           await supabase.from('subscriptions').upsert({
             user_id: userId,
-            stripe_subscription_id: subscription.subscription,
+            stripe_subscription_id: subId,
             stripe_price_id: session.metadata?.priceId || '',
             status: 'active',
             current_period_start: new Date().toISOString(),
@@ -193,8 +249,9 @@ async function startServer() {
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        const supUrl = process.env.VITE_SUPABASE_URL!;
-        const supKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
+        const supUrl = process.env.VITE_SUPABASE_URL || '';
+        const supKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+        if (!supUrl || !supKey) throw new Error('Supabase not configured');
         const { createClient: cc } = await import('@supabase/supabase-js');
         const sb = cc(supUrl, supKey);
         await sb.from('subscriptions').update({
@@ -214,15 +271,21 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  app.post("/api/gemini", async (req, res) => {
+  app.post("/api/gemini", geminiLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return res.status(500).json({ error: "AI service not configured" });
       }
+      const geminiValid = geminiSchema.safeParse(req.body);
+      if (!geminiValid.success) {
+        return res.status(400).json({ error: geminiValid.error.issues[0].message });
+      }
+      const { prompt } = geminiValid.data;
+      const sanitizeErr = sanitizePrompt(prompt);
+      if (sanitizeErr) return res.status(400).json({ error: sanitizeErr });
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
-      const { prompt } = req.body;
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: prompt
@@ -527,7 +590,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   app.post("/api/upload-url", async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Storage not configured' });
-      const { bucket, fileName, contentType } = req.body;
+      const { bucket, fileName } = req.body;
       if (!bucket || !fileName) return res.status(400).json({ error: 'bucket and fileName required' });
 
       const filePath = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '')}`;
@@ -585,11 +648,12 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   app.get("/sitemap.xml", async (_req, res) => {
     const baseUrl = process.env.APP_URL || 'http://localhost:3000';
     const staticRoutes = ['/', '/about', '/catalog', '/beat-store', '/blog', '/supervisor', '/supervisor/register', '/submit-brief', '/submit', '/agreement', '/terms', '/privacy'];
-    const rosterRoutes = ['/roster/niro', '/roster/tap919', '/roster/art-productions'];
+    const rosterRoutes = ['/roster/niro', '/roster/tap919', '/roster/art-productions', '/roster/soulyghost'];
+    const lastmod = new Date().toISOString().split('T')[0];
 
     let urls = '';
     for (const route of [...staticRoutes, ...rosterRoutes]) {
-      urls += `  <url><loc>${baseUrl}${route}</loc><changefreq>weekly</changefreq></url>\n`;
+      urls += `  <url>\n    <loc>${baseUrl}${route}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n  </url>\n`;
     }
 
     res.setHeader('Content-Type', 'application/xml');
@@ -598,8 +662,9 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
 
   // Robots.txt
   app.get("/robots.txt", (_req, res) => {
+    const baseUrl = process.env.APP_URL || 'http://localhost:3000';
     res.setHeader('Content-Type', 'text/plain');
-    res.send('User-agent: *\nAllow: /\n\nSitemap: http://localhost:3000/sitemap.xml');
+    res.send(`User-agent: *\nAllow: /\n\nSitemap: ${baseUrl}/sitemap.xml`);
   });
 
   // ================================================================
@@ -972,13 +1037,16 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   // ================================================================
   // EMAIL SERVICE (Resend)
   // ================================================================
-  app.post("/api/email/send", async (req, res) => {
+  app.post("/api/email/send", requireAdmin, async (req, res) => {
     try {
       const apiKey = process.env.RESEND_API_KEY;
       if (!apiKey) return res.status(500).json({ error: "Email service not configured (set RESEND_API_KEY)" });
 
-      const { to, subject, html, from, cc, bcc } = req.body;
-      if (!to || !subject || !html) return res.status(400).json({ error: 'to, subject, and html required' });
+      const emailValid = emailSchema.safeParse(req.body);
+      if (!emailValid.success) {
+        return res.status(400).json({ error: emailValid.error.issues[0].message });
+      }
+      const { to, subject, html, from, cc, bcc } = emailValid.data;
 
       const { Resend } = await import('resend');
       const resend = new Resend(apiKey);
@@ -1002,13 +1070,18 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   // ================================================================
   // AI AGENT CHAT
   // ================================================================
-  app.post("/api/agent/chat", async (req, res) => {
+  app.post("/api/agent/chat", requireAdmin, agentLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) return res.status(500).json({ error: 'AI service not configured' });
 
-      const { messages, context } = req.body;
-      if (!messages?.length) return res.status(400).json({ error: 'messages required' });
+      const agentValid = agentChatSchema.safeParse(req.body);
+      if (!agentValid.success) {
+        return res.status(400).json({ error: agentValid.error.issues[0].message });
+      }
+      const { messages, context } = agentValid.data;
+      const sanitizeErr = sanitizeMessages(messages);
+      if (sanitizeErr) return res.status(400).json({ error: sanitizeErr });
 
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
@@ -1128,7 +1201,7 @@ Be concise and helpful. Do not make up information.`;
   }
 
   // Agent tool executor
-  async function executeAgentTool(toolName: string, args: Record<string, string>, client: any): Promise<string> {
+  async function executeAgentTool(toolName: string, args: Record<string, string>, client: SupabaseClient | null): Promise<string> {
     switch (toolName) {
       case 'get_income_summary': {
         if (!client) return 'Database not configured';
@@ -1192,7 +1265,7 @@ Be concise and helpful. Do not make up information.`;
         if (!apiKey) return 'Email service not configured.';
         const { Resend } = await import('resend');
         const resend = new Resend(apiKey);
-        const { data, error } = await resend.emails.send({
+        const { error } = await resend.emails.send({
           from: 'NcSound Publishing <notifications@ncsound.com>',
           to: args.to,
           subject: args.subject,
@@ -1602,12 +1675,8 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // --- Stripe Connect Onboarding ---
   app.post("/api/stripe/connect/onboard", async (req, res) => {
     try {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) return res.status(500).json({ error: 'Payments not configured' });
+      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
       const { artistId } = req.body;
       if (!artistId) return res.status(400).json({ error: 'artistId required' });
 
@@ -1619,7 +1688,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         accountId = existing.stripe_account_id;
       } else {
         // Create new Connect account
-        const account = await stripe.accounts.create({
+        const account = await stripeModule.accounts.create({
           type: 'express',
           capabilities: { transfers: { requested: true } },
         });
@@ -1632,7 +1701,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
 
       // Generate onboarding link
       const appUrl = process.env.APP_URL || 'http://localhost:3000';
-      const link = await stripe.accountLinks.create({
+      const link = await stripeModule.accountLinks.create({
         account: accountId,
         refresh_url: `${appUrl}/artist/dashboard`,
         return_url: `${appUrl}/artist/dashboard?connect=complete`,
@@ -1647,19 +1716,16 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
 
   // Webhook: Stripe Connect account.updated
   // Note: Must be registered in Stripe dashboard webhook settings
-  app.post("/api/stripe/connect/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
+  app.post("/api/stripe/connect/webhook", webhookLimiter, express.raw({ type: 'application/json' }), async (req, res) => {
     try {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!stripeKey || !webhookSecret || !supabaseClient) return res.status(200).send(); // no-op if not configured
+      if (!stripeModule || !webhookSecret || !supabaseClient) return res.status(200).send(); // no-op if not configured
 
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
       const sig = req.headers['stripe-signature'];
-      const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      const event: Stripe.Event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
 
       if (event.type === 'account.updated') {
-        const account = event.data.object;
+        const account = event.data.object as Stripe.Account;
         await supabaseClient.from('stripe_accounts').update({
           onboarding_complete: account.charges_enabled,
           payouts_enabled: account.payouts_enabled,
@@ -1668,19 +1734,15 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
       res.json({ received: true });
     } catch (webhookErr: any) {
       console.error('Stripe connect webhook error:', webhookErr.message);
-      res.status(200).send();
+      res.status(400).json({ error: 'Webhook verification failed' });
     }
   });
 
   // --- Automated Payout ---
-  app.post("/api/stripe/payout", async (req, res) => {
+  app.post("/api/stripe/payout", requireAdmin, async (req, res) => {
     try {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) return res.status(500).json({ error: 'Payments not configured' });
+      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
       const { statementId, artistId, amount } = req.body;
       if (!artistId || !amount) return res.status(400).json({ error: 'artistId and amount required' });
 
@@ -1690,7 +1752,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
       if (!account.payouts_enabled) return res.status(400).json({ error: 'Artist Stripe account not ready for payouts' });
 
       // Create transfer to connected account
-      const transfer = await stripe.transfers.create({
+      const transfer = await stripeModule.transfers.create({
         amount: Math.round(amount * 100),
         currency: 'usd',
         destination: account.stripe_account_id,
@@ -1713,18 +1775,14 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // --- Self-Serve Sync License Checkout ---
   app.post("/api/license/checkout", async (req, res) => {
     try {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) return res.status(500).json({ error: 'Payments not configured' });
+      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
       const { trackId, licenseType, price, buyerEmail, title } = req.body;
       if (!trackId || !licenseType || !price || !buyerEmail) {
         return res.status(400).json({ error: 'trackId, licenseType, price, buyerEmail required' });
       }
 
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripeModule.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
           price_data: {
@@ -1752,22 +1810,20 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // This is integrated into the existing /api/webhook handler above.
 
   // --- License PDF Generation ---
-  app.post("/api/license/pdf", async (req, res) => {
+  app.post("/api/license/doc", async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
 
       const { purchaseId, trackId, buyerEmail, licenseType, amount } = req.body;
 
-      // Get track details
       const { data: track } = await supabaseClient.from('tracks').select('*, artists(stage_name)').eq('id', trackId).single();
       if (!track) return res.status(404).json({ error: 'Track not found' });
 
       const appUrl = process.env.APP_URL || 'http://localhost:3000';
       const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Generate HTML for the license
       const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>License Agreement â€” ${track.title}</title>
+<html><head><meta charset="utf-8"><title>License Agreement — ${track.title}</title>
 <style>
   body { font-family: 'Courier New', monospace; max-width: 700px; margin: 40px auto; padding: 20px; color: #111; }
   h1 { text-transform: uppercase; font-size: 20px; letter-spacing: 2px; border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -1787,7 +1843,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
 <h2>Track</h2>
 <table><tr><td>Title:</td><td>${track.title}</td></tr>
 <tr><td>ISRC:</td><td>${track.isrc || 'Not provided'}</td></tr>
-<tr><td>Genre:</td><td>${track.genre || 'â€”'}</td></tr></table>
+<tr><td>Genre:</td><td>${track.genre || '—'}</td></tr></table>
 <h2>License Terms</h2>
 <table><tr><td>Type:</td><td>${licenseType.toUpperCase()}</td></tr>
 <tr><td>Fee:</td><td>$${parseFloat(amount).toFixed(2)} USD</td></tr>
@@ -1796,25 +1852,23 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
 <tr><td>Exclusivity:</td><td>Non-Exclusive</td></tr></table>
 <p>This license grants the Licensee the right to synchronize the above-mentioned Track in timed relation with visual media, subject to the terms agreed upon at the time of purchase.</p>
 <div class="signature"><p>Accepted by NcSound Publishing as publishing administrator for the Licensor.</p></div>
-<div class="footer">NcSound Publishing â€” ${appUrl}</div>
+<div class="footer">NcSound Publishing — ${appUrl}</div>
 </body></html>`;
 
-      // Upload HTML as PDF to Supabase Storage
       const fileName = `license-${purchaseId || trackId}-${Date.now()}.html`;
       const { data: upload } = await supabaseClient.storage
         .from('licenses')
         .upload(fileName, html, { contentType: 'text/html', upsert: true });
 
-      const pdfUrl = upload?.path
+      const docUrl = upload?.path
         ? `${appUrl}/api/license/view/${fileName}`
         : null;
 
-      // Store URL
       if (purchaseId) {
-        await supabaseClient.from('license_purchases').update({ pdf_url: pdfUrl }).eq('id', purchaseId);
+        await supabaseClient.from('license_purchases').update({ doc_url: docUrl }).eq('id', purchaseId);
       }
 
-      res.json({ pdf_url: pdfUrl, html });
+      res.json({ doc_url: docUrl, html });
     } catch (err: any) {
       res.status(500).json({ error: sanitizeError(err) });
     }
@@ -1838,15 +1892,11 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // --- Subscription Checkout ---
   app.post("/api/subscription/checkout", async (req, res) => {
     try {
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) return res.status(500).json({ error: 'Payments not configured' });
-
-      const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
+      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
       const { priceId, userId, email } = req.body;
       if (!priceId || !userId) return res.status(400).json({ error: 'priceId and userId required' });
 
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripeModule.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
@@ -1870,7 +1920,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // ================================================================
 
   // --- CWR 2.2 Compliant Export ---
-  app.post("/api/cwr/v2/generate", async (req, res) => {
+  app.post("/api/cwr/v2/generate", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { data: tracks } = await supabaseClient
@@ -1889,8 +1939,6 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         const title = (t.title || 'UNTITLED').substring(0, 50);
         const iswc = t.iswc || '';
         const isrc = t.isrc || '';
-        const duration = t.duration || 0;
-        const artistName = (t.artists?.stage_name || 'Unknown').substring(0, 30);
 
         // NWR (Work) record
         lines.push([
@@ -1932,7 +1980,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   });
 
   // --- DDEX ERN 4.3 XML Generation ---
-  app.post("/api/ddex/generate", async (req, res) => {
+  app.post("/api/ddex/generate", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { trackIds } = req.body;
@@ -2031,7 +2079,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   }
 
   // --- Admin Analytics (replace hardcoded metrics) ---
-  app.get("/api/analytics/admin", async (req, res) => {
+  app.get("/api/analytics/admin", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
 
@@ -2039,10 +2087,13 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         supabaseClient.from('tracks').select('*', { count: 'exact', head: true }),
         supabaseClient.from('artists').select('*', { count: 'exact', head: true }),
         supabaseClient.from('supervisors').select('*', { count: 'exact', head: true }),
-        supabaseClient.from('deals').select('sync_fee'),
-        supabaseClient.from('royalty_statements').select('net_payout, status'),
-        supabaseClient.from('income_summary').select('net_amount'),
+        supabaseClient.from('deals').select('sync_fee').limit(10000),
+        supabaseClient.from('royalty_statements').select('net_payout, status').limit(10000),
+        supabaseClient.from('income_summary').select('net_amount').limit(10000),
       ]);
+
+      if ((dealsRes.data?.length || 0) >= 10000) log(4, 'deals query hit 10000 limit');
+      if ((incomeRes.data?.length || 0) >= 10000) log(4, 'income_summary query hit 10000 limit');
 
       const totalManagedFees = (dealsRes.data || []).reduce((s: number, d: any) => s + parseFloat(d.sync_fee || 0), 0);
       const activeCueSheets = (dealsRes.data || []).length;
@@ -2065,7 +2116,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   });
 
   // --- Supervisor Analytics ---
-  app.get("/api/analytics/supervisors", async (req, res) => {
+  app.get("/api/analytics/supervisors", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
 
@@ -2099,6 +2150,10 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
 
       const { title, artist, genre, bpm, mood_tags, description } = req.body;
       if (!title) return res.status(400).json({ error: 'title required' });
+      if (description) {
+        const descErr = sanitizePrompt(description);
+        if (descErr) return res.status(400).json({ error: descErr });
+      }
 
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
@@ -2195,7 +2250,10 @@ Respond with ONLY a JSON object:
         remaining: data.monthly_limit - (data.credits_used || 0),
         month: data.month,
       });
-    } catch { res.json({ monthly_limit: 3, credits_used: 0, remaining: 3 }); }
+    } catch (err: any) {
+      console.error('Playlist credits lookup failed:', err.message);
+      res.json({ monthly_limit: 3, credits_used: 0, remaining: 3 });
+    }
   });
 
   // ================================================================
@@ -2203,7 +2261,7 @@ Respond with ONLY a JSON object:
   // ================================================================
 
   // Create an exclusive license offer
-  app.post("/api/license/exclusive-offer", async (req, res) => {
+  app.post("/api/license/exclusive-offer", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { track_id, artist_id, licensee_name, offer_amount, pro_split, mechanical_split, publishing_split, terms } = req.body;
@@ -2212,8 +2270,8 @@ Respond with ONLY a JSON object:
       }
 
       const amount = parseFloat(offer_amount);
-      const ncsoundCut = amount * 0.20;
-      const artistPayout = amount * 0.80;
+      const ncsoundCut = amount * SPLIT.NCSOUND;
+      const artistPayout = amount * SPLIT.ARTIST;
 
       const { data, error } = await supabaseClient.from('exclusive_offers').insert({
         track_id, artist_id, licensee_name, offer_amount: amount,
@@ -2236,7 +2294,10 @@ Respond with ONLY a JSON object:
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { data } = await supabaseClient.from('exclusive_offers').select('*').eq('track_id', req.params.trackId).order('created_at', { ascending: false });
       res.json(data || []);
-    } catch { res.json([]); }
+    } catch (err: any) {
+      console.error('Exclusive offers lookup failed:', err.message);
+      res.json([]);
+    }
   });
 
   // ================================================================
@@ -2331,7 +2392,12 @@ Respond with ONLY a JSON object:
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+
+    app.get('/api/*', (_req, res) => {
+      res.status(404).json({ error: 'API endpoint not found' });
+    });
+
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

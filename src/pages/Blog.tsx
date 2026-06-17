@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Youtube, Calendar, Clock, ExternalLink, Radio, Headphones } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Youtube, Radio, Headphones } from 'lucide-react';
 import { SEO } from '../components/SEO';
 
 const NCSOUND_CHANNEL_ID = 'UCc-BX8O8xIAHOdPUwEGzxZA';
 
 export default function Blog() {
-  const [videos, setVideos] = useState<any[]>([]);
+  const [videos, setVideos] = useState<{ id: string; title: string; thumbnail: string; publishedAt: string }[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
 

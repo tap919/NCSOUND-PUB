@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         supabase.from('users').select('role').eq('id', session.user.id).single().then(({ data }) => {
-          if (data) setRole((data as any).role);
+          if (data) setRole((data as { role: string }).role);
         });
       } else {
         setRole(null);
