@@ -24,6 +24,8 @@ export default function AgentChat({ context }: AgentChatProps) {
   const [loading, setLoading] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   useEffect(() => {
     if (!minimized) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,17 +33,18 @@ export default function AgentChat({ context }: AgentChatProps) {
 
   const send = async () => {
     if (!input.trim() || loading) return;
+    setLoading(true);
     const userMsg: ChatMessage = { role: 'user', content: input.trim() };
+    const prevMessages = messagesRef.current;
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setLoading(true);
 
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content, tool_call: m.tool_call })),
+          messages: [...prevMessages, userMsg].map(m => ({ role: m.role, content: m.content, tool_call: m.tool_call })),
           context,
         }),
       });
@@ -68,7 +71,6 @@ export default function AgentChat({ context }: AgentChatProps) {
 
   return (
     <div className={`fixed z-50 transition-all duration-300 ${minimized ? 'bottom-6 right-6 w-72' : 'bottom-6 right-6 w-80 sm:w-96'}`}>
-      {/* Header */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-t-lg flex items-center justify-between px-4 py-3 shadow-2xl">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-orange-500" />
@@ -86,7 +88,6 @@ export default function AgentChat({ context }: AgentChatProps) {
 
       {!minimized && (
         <>
-          {/* Messages */}
           <div className="bg-neutral-950 border-x border-neutral-800 max-h-96 overflow-y-auto p-4 space-y-3" style={{ minHeight: '200px' }}>
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -115,7 +116,6 @@ export default function AgentChat({ context }: AgentChatProps) {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-b-lg p-3 flex gap-2">
             <input
               value={input}
