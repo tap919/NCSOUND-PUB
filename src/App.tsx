@@ -41,7 +41,7 @@ const Story = React.lazy(() => import('./pages/Story'));
 const NiroMusic = React.lazy(() => import('./pages/NiroMusic'));
 const PlaylistSubmit = React.lazy(() => import('./pages/PlaylistSubmit'));
 
-function ProtectedRoute({ children, fallbackPath, requiredRole }: { children: React.ReactNode, fallbackPath: string, requiredRole?: string }) {
+export function ProtectedRoute({ children, fallbackPath, requiredRole }: { children: React.ReactNode, fallbackPath: string, requiredRole?: string }) {
   const { user, loading, role } = useAuth();
   const location = useLocation();
 

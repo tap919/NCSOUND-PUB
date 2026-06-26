@@ -245,6 +245,7 @@ CREATE TRIGGER auto_calculate_splits
 -- ==========================================
 
 ALTER TABLE public.artists ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.artists TO authenticated;
 ALTER TABLE public.tracks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.royalty_statements ENABLE ROW LEVEL SECURITY;
 

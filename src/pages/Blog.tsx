@@ -10,14 +10,18 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
     fetch(`/api/youtube/feed?channelId=${NCSOUND_CHANNEL_ID}`)
       .then(r => r.json())
       .then(data => {
-        setVideos(data.videos || []);
-        setIsLive(data.isLive || false);
+        if (!ignore) {
+          setVideos(data.videos || []);
+          setIsLive(data.isLive || false);
+        }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
   }, []);
 
   // Keep static blog posts as "articles" alongside video resources

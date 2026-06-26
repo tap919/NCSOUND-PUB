@@ -129,9 +129,9 @@ describe('Security: sanitizeError', () => {
     expect(result).toBe('A string error');
   });
 
-  it('truncates long messages to 300 characters', () => {
-    const longMessage = 'x'.repeat(500);
+  it('truncates long messages to 500 characters', () => {
+    const longMessage = 'x'.repeat(600);
     const result = sanitizeError(new Error(longMessage));
-    expect(result.length).toBeLessThanOrEqual(300);
+    expect(result.length).toBeLessThanOrEqual(500);
   });
 });

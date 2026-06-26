@@ -169,25 +169,10 @@ export async function classifyMetadata(
   energy: string | null,
   instrumentationHint?: string
 ): Promise<{ mood_tags: string[]; genre: string; confidence: number }> {
-  const prompt = `You are a music AI classifier. Analyze this track and respond with ONLY a JSON object.
-
-Track: "${title}"
-BPM: ${bpm || 'unknown'}
-Key: ${key || 'unknown'}
-Energy: ${energy || 'unknown'}
-${instrumentationHint ? `Instruments: ${instrumentationHint}` : ''}
-
-Respond with:
-{
-  "genre": "one primary genre (e.g., Hip-Hop, R&B, Pop, Rock, Electronic, Lo-Fi, Trap, Drill, House, Ambient, Country, Jazz)",
-  "mood_tags": ["3-5 mood tags that describe the emotional feel (e.g., dark, energetic, melancholic, uplifting, aggressive, smooth)"],
-  "confidence": 0.0-1.0
-}`;
-
-  const res = await fetch('/api/gemini', {
+  const res = await fetch('/api/analyze/classify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ title, bpm, key, energy, instrumentation: instrumentationHint }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Classification failed');

@@ -2,18 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('../../lib/supabase', () => {
-  function createSupabaseMock(returnData: any[] | null = []) {
-    const self: any = {};
-    self.then = (cb: (val: any) => void) => cb({ data: returnData, error: null });
-    return new Proxy(self, {
-      get(_, prop) {
-        if (prop === 'then') return self.then;
-        return () => self;
-      },
-    });
-  }
-  return { supabase: { from: () => createSupabaseMock() } };
+vi.mock('../../../lib/supabase', () => {
+  const emptyResult = { data: [], error: null };
+  const chainProxy: any = new Proxy({}, {
+    get(_target, prop) {
+      if (prop === 'then') {
+        return (resolve: any) => resolve(emptyResult);
+      }
+      return (..._args: any[]) => chainProxy;
+    },
+  });
+  return { supabase: { from: () => chainProxy } };
 });
 
 import LicenseRequests from '../../../pages/admin/LicenseRequests';

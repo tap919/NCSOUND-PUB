@@ -1,0 +1,13 @@
+{
+  "name": "NcSound Publishing",
+  "short_name": "NcSound",
+  "description": "Sync licensing platform for independent artists and music supervisors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#f97316",
+  "icons": [
+    { "src": "/assets/brand/ncsound-logo.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any" },
+    { "src": "/assets/brand/ncsound-logo.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
+  ]
+}

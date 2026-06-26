@@ -39,11 +39,14 @@ export default function Dashboard() {
           .order('created_at', { ascending: false });
         if (!ignore) setTracks(tracksData || []);
 
-        // Load income data
+        // Load income data (single fetch, derive both states)
         fetch(`/api/integrations/summary?artist_id=${artist.id}`)
-          .then(r => r.json()).then(d => { if (!ignore && Array.isArray(d)) setIncomeData(d); }).catch(() => {});
-        fetch(`/api/integrations/summary?artist_id=${artist.id}`)
-          .then(r => r.json()).then(d => { if (!ignore && Array.isArray(d)) setRoyaltyData(d.filter((i: any) => i.source_type === 'royalty')); }).catch(() => {});
+          .then(r => r.json()).then(d => {
+            if (!ignore && Array.isArray(d)) {
+              setIncomeData(d);
+              setRoyaltyData(d.filter((i: any) => i.source_type === 'royalty'));
+            }
+          }).catch(() => {});
       }
       if (!ignore) setLoadingTracks(false);
     };

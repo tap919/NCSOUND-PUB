@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 export default function PlaylistSubmit() {
   const { user } = useAuth();
-  const [, setStep] = useState(1);
+  const [step, setStep] = useState(1);
   const [credits, setCredits] = useState<{ remaining: number; monthly_limit: number } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -17,9 +17,10 @@ export default function PlaylistSubmit() {
   });
 
   useEffect(() => {
-    if (user) {
-      fetch(`/api/playlist/credits/${user.id}`).then(r => r.json()).then(setCredits).catch(() => {});
-    }
+    if (!user) return;
+    let ignore = false;
+    fetch(`/api/playlist/credits/${user.id}`).then(r => r.json()).then(d => { if (!ignore) setCredits(d); }).catch(() => {});
+    return () => { ignore = true; };
   }, [user]);
 
   const handleAnalyze = async () => {

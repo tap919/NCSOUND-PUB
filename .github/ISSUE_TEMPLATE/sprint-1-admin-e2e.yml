@@ -1,0 +1,37 @@
+name: "[Sprint 1] Admin Approval/Triage E2E"
+description: "Admin login → Approve License/Brief workflow"
+labels: ["sprint-1", "e2e", "admin", "priority:high"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Objective
+        Implement E2E test for admin approval workflows.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] Admin login at `/admin/login`
+        - [ ] Navigate to `/admin/license-requests` and approve a request
+        - [ ] Navigate to `/admin/inbox` and triage supervisor requests
+        - [ ] Status updates visible immediately after action
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      value: |
+        - Build on existing `e2e/admin-license-approval.spec.ts`
+        - Use `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` env vars
+        - Seed test license requests in Supabase
+        - Test file: `e2e/admin-approval.spec.ts`
+
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Owner
+      options:
+        - "@admin-team"
+        - "@core-team"

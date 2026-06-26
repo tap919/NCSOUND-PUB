@@ -239,7 +239,7 @@ export async function ocrAndRecordRoyalty(
 // === SPOTIFY HELPERS ===
 
 export function getSpotifyAuthUrl(redirectUri: string): string {
-  const clientId = ''; // will be set from config
+  const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
   const scopes = ['user-library-read', 'user-top-read'];
   const params = new URLSearchParams({
     client_id: clientId,

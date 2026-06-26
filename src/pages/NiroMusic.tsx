@@ -19,12 +19,13 @@ export default function NiroMusic() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
+    let ignore = false;
     (async () => {
       const { data } = await supabase
         .from('albums')
         .select('*, tracks(*, track_files(*))')
         .order('created_at', { ascending: true });
-      if (data) {
+      if (!ignore && data) {
         const mapped: Album[] = (data as any[]).map((a) => ({
           ...a,
           tracks: (a.tracks || []).sort((a: any, b: any) => (a.track_number || 0) - (b.track_number || 0)),
@@ -32,8 +33,9 @@ export default function NiroMusic() {
         setAlbums(mapped);
         if (mapped.length > 0) { setCurrentAlbum(mapped[0]); }
       }
-      setLoading(false);
+      if (!ignore) setLoading(false);
     })();
+    return () => { ignore = true; };
   }, []);
 
   const track = currentAlbum?.tracks[currentTrackIdx];

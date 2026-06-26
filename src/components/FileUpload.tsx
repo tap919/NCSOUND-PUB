@@ -80,7 +80,7 @@ export function FileUpload({ bucket, accept = 'audio/wav,audio/mpeg,audio/flac',
           <p className="text-[10px] text-neutral-500 font-sans">Max {maxSizeMB}MB · WAV/MP3/FLAC</p>
         </div>
       )}
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <input ref={inputRef} data-testid="file-input" type="file" accept={accept} className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
     </div>
   );
 }

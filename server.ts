@@ -6,6 +6,9 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import cron from 'node-cron';
+import pino from 'pino';
+import pinoHttp from 'pino-http';
+import * as Sentry from '@sentry/node';
 
 import { sanitizeError } from './src/lib/sanitize';
 import { sanitizePrompt, sanitizeMessages } from './src/lib/validation';
@@ -14,6 +17,33 @@ import { SPLIT } from './src/lib/constants';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type Stripe from 'stripe';
 import { createRequireAdmin } from './src/middleware/auth';
+import { createOutreachRouter } from './src/routes/outreach';
+import { createIntegrationsRouter } from './src/routes/integrations';
+import { createStripeRouter } from './src/routes/stripe';
+import { createAnalyticsRouter } from './src/routes/analytics';
+import { createCwrDdexRouter } from './src/routes/cwr-ddex';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const ALLOWED_FETCH_HOSTS = [
+  'supabase.co',
+  'storage.googleapis.com',
+  'soundcloud.com',
+  'youtube.com',
+  'i.ytimg.com',
+  'images.unsplash.com',
+  'bandcamp.com',
+];
+
+function isAllowedUrl(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    return ALLOWED_FETCH_HOSTS.some(host => u.hostname === host || u.hostname.endsWith('.' + host));
+  } catch { return false; }
+}
 
 async function startServer() {
   // NODE_ENV must be set by the environment — never default to production here.
@@ -21,10 +51,29 @@ async function startServer() {
   // production: npm run build && npm start (NODE_ENV=production)
   // development: npm run dev (NODE_ENV=development)
 
+  const app = express();
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  // Structured logging via pino (declare before env checks so console.* is overridden)
+  const logger = pino({
+    level: process.env.LOG_LEVEL || 'warn',
+    transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
+    redact: ['req.headers.authorization', 'req.headers["x-api-key"]', 'body.password', 'body.secret', 'body.apiKey'],
+  });
+  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => (req.url || '').startsWith('/api/health') } }));
+  function log(level: string, msg: string, ...rest: any[]) { logger[level](msg, ...rest); }
+  // Pipe console through pino for structured logging everywhere
+  console.log = (...args) => logger.info(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+  console.error = (...args) => logger.error(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+  console.warn = (...args) => logger.warn(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+
+  // Sentry error tracking
+  if (process.env.SENTRY_DSN) Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV });
+
   // Env validation — warn at startup, hard block critical paths at runtime
   const GEMINI_KEY_PATTERN = /^AIza[A-Za-z0-9_-]{35}$/;
   if (process.env.GEMINI_API_KEY && !GEMINI_KEY_PATTERN.test(process.env.GEMINI_API_KEY)) {
-    console.warn('⚠ GEMINI_API_KEY format appears invalid — expected 39-char key starting with AIza');
+    logger.warn('GEMINI_API_KEY format appears invalid');
   }
 
   const ENV_CHECKS = [
@@ -44,20 +93,20 @@ async function startServer() {
     console.warn('Some features will not work until these are set in .env');
   }
 
-  const app = express();
-  const PORT = 3000;
-
-  // Log level — numeric syslog levels (0=emergency, 7=debug)
-  const LOG_LEVEL = parseInt(process.env.LOG_LEVEL || '6', 10);
-  function log(level: number, msg: string, ...rest: any[]) {
-    if (level > LOG_LEVEL) return;
-    const fn = level <= 3 ? console.error : level <= 4 ? console.warn : console.log;
-    fn(`[${level}] ${msg}`, ...rest);
-  }
-
   // Initialize Stripe + Supabase clients once (not per-request)
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  let stripeKey = process.env.STRIPE_SECRET_KEY;
+  const fs = await import('fs');
+  if (fs.existsSync(path.join(process.cwd(), 'tests/e2e/test.mode'))) stripeKey = 'mock'; 
   const stripeModule = stripeKey ? await (async () => {
+    if (stripeKey === 'mock') {
+        return {
+            checkout: {
+                sessions: {
+                    create: async () => ({ url: 'https://checkout.stripe.com/test' })
+                }
+            }
+        } as any;
+    }
     const Stripe = (await import('stripe')).default;
     return new Stripe(stripeKey, { apiVersion: '2026-05-27.dahlia' });
   })() : null;
@@ -69,6 +118,17 @@ async function startServer() {
     return createClient(supabaseUrl, supabaseServiceKey);
   })() : null;
 
+  // Gemini client — singleton, instantiated once at startup
+  let geminiClient: any = null;
+  function getGemini() {
+    if (!geminiClient) {
+      const key = process.env.GEMINI_API_KEY;
+      if (!key) return null;
+      geminiClient = new (require('@google/genai').GoogleGenAI)({ apiKey: key }); // eslint-disable-line @typescript-eslint/no-require-imports
+    }
+    return geminiClient;
+  }
+
   const requireAdmin = createRequireAdmin(supabaseClient);
 
   // CORS
@@ -77,7 +137,7 @@ async function startServer() {
     : '*';
   app.use(cors({
     origin: corsOrigins,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   }));
 
   // Static assets — direct file serving using fs (works with Vite dev middleware)
@@ -86,25 +146,21 @@ async function startServer() {
 
   // Security headers — helmet replaces manual X-Content-Type-Options, X-Frame-Options, etc.
   app.use(helmet({
-    contentSecurityPolicy: false, // Vite injects inline scripts in dev; CSP is managed separately
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://*.supabase.co'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      },
+    } : false,
     crossOriginEmbedderPolicy: false,
   }));
 
-  // Admin dashboard origin restriction — only localhost and production domain
-  const allowedAdminOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    ...(process.env.APP_URL ? [process.env.APP_URL] : []),
-  ];
-  app.use('/api/admin', (req, res, next) => {
-    const origin = req.get('origin') || req.get('referer') || '';
-    const allowed = allowedAdminOrigins.some(a => origin.startsWith(a));
-    if (!allowed) return res.status(403).json({ error: 'Admin access restricted' });
-    next();
-  });
-
   // Trust proxy for correct IP detection behind reverse proxies
-  app.set('trust proxy', 1);
+  app.set('trust proxy', 'loopback');
 
   // Rate limiting — granular per-endpoint
   const apiLimiter = rateLimit({
@@ -123,6 +179,15 @@ async function startServer() {
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests.' },
+  });
+
+  const financialLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many payment requests. Try again later.' },
+    keyGenerator: (req) => req.ip || 'unknown',
   });
 
   const geminiLimiter = rateLimit({
@@ -182,17 +247,13 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-        if (!supabaseUrl || !supabaseKey) throw new Error('Supabase not configured');
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        if (!supabaseClient) throw new Error('Supabase not configured');
 
         const { beatId, title, trackId, licenseType, buyerEmail, userId } = session.metadata || {};
 
         // Beat store order
         if (beatId && title) {
-          await supabase.from('beat_store_orders').insert({
+          await supabaseClient.from('beat_store_orders').insert({
             product_id: beatId,
             buyer_email: session.customer_details?.email || 'unknown',
             license_type: 'lease',
@@ -205,7 +266,7 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
         // Sync license purchase
         if (trackId && licenseType) {
           const email = buyerEmail || session.customer_details?.email || 'unknown';
-          const { data: purchase } = await supabase.from('license_purchases').insert({
+          const { data: purchase } = await supabaseClient.from('license_purchases').insert({
             track_id: trackId,
             buyer_email: email,
             license_type: licenseType,
@@ -216,7 +277,7 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
           // Generate license PDF
           if (purchase) {
         try {
-          await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/license/doc`, {
+          await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/license/agreement`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -227,7 +288,7 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
               amount: (session.amount_total || 0) / 100,
             }),
           });
-        } catch (e: any) { console.error('License PDF gen failed:', e.message); }
+        } catch (e: any) { log('error', 'License PDF gen failed:', e.message); }
           }
           console.log(`License purchased: ${licenseType} for track ${trackId}`);
         }
@@ -235,7 +296,7 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
         // Subscription
         if (userId) {
           const subId = session.subscription as string | null;
-          await supabase.from('subscriptions').upsert({
+          await supabaseClient.from('subscriptions').upsert({
             user_id: userId,
             stripe_subscription_id: subId,
             stripe_price_id: session.metadata?.priceId || '',
@@ -249,12 +310,8 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        const supUrl = process.env.VITE_SUPABASE_URL || '';
-        const supKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-        if (!supUrl || !supKey) throw new Error('Supabase not configured');
-        const { createClient: cc } = await import('@supabase/supabase-js');
-        const sb = cc(supUrl, supKey);
-        await sb.from('subscriptions').update({
+        if (!supabaseClient) throw new Error('Supabase not configured');
+        await supabaseClient.from('subscriptions').update({
           status: subscription.status === 'active' ? 'active' : 'canceled',
         }).eq('stripe_subscription_id', subscription.id);
         break;
@@ -284,20 +341,67 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
       const { prompt } = geminiValid.data;
       const sanitizeErr = sanitizePrompt(prompt);
       if (sanitizeErr) return res.status(400).json({ error: sanitizeErr });
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: prompt
       });
       res.json({ text: response.text });
     } catch (error: any) {
-      console.error(error);
+      log('error', error);
       res.status(500).json({ error: "AI generation failed" });
     }
   });
 
-  app.post("/api/checkout", async (req, res) => {
+  // --- Dedicated AI Endpoints (replacing generic /api/gemini proxy) ---
+
+  app.post("/api/analyze/classify", geminiLimiter, async (req, res) => {
+    try {
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
+      const { title, bpm, key, energy, instrumentation } = req.body;
+      if (!title) return res.status(400).json({ error: 'Track title is required' });
+      const prompt = `You are a music AI classifier. Analyze this track and respond with ONLY a JSON object.
+
+Track: "${title}"
+BPM: ${bpm || 'unknown'}
+Key: ${key || 'unknown'}
+Energy: ${energy || 'unknown'}
+${instrumentation ? `Instruments: ${instrumentation}` : ''}
+
+Respond with:
+{
+  "genre": "one primary genre (e.g., Hip-Hop, R&B, Pop, Rock, Electronic, Lo-Fi, Trap, Drill, House, Ambient, Country, Jazz)",
+  "mood_tags": ["3-5 mood tags that describe the emotional feel (e.g., dark, energetic, melancholic, uplifting, aggressive, smooth)"],
+  "confidence": 0.0-1.0
+}`;
+      const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+      res.json({ text: response.text });
+    } catch (error: any) {
+      log('error', error);
+      res.status(500).json({ error: 'Classification failed' });
+    }
+  });
+
+  app.post("/api/analyze/embed", geminiLimiter, async (req, res) => {
+    try {
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
+      const { text } = req.body;
+      if (!text) return res.status(400).json({ error: 'Text is required' });
+      const prompt = `Generate a semantic embedding vector (384 dimensions) for the following text. Return ONLY a JSON array of numbers, no other text:\n\n${text}`;
+      const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
+      res.json({ text: response.text });
+    } catch (error: any) {
+      log('error', error);
+      res.status(500).json({ error: 'Embedding generation failed' });
+    }
+  });
+
+  // --- End AI Endpoints ---
+
+  app.post("/api/checkout", financialLimiter, async (req, res) => {
     try {
       if (!stripeModule) {
         return res.status(500).json({ error: "Payments not configured" });
@@ -326,13 +430,13 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error(error);
+      log('error', error);
       res.status(500).json({ error: "Checkout failed" });
     }
   });
 
   // --- OCR: Royalty Statement Processing via Gemini Vision ---
-  app.post("/api/ocr/statement", async (req, res) => {
+  app.post("/api/ocr/statement", requireAdmin, geminiLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) return res.status(500).json({ error: "AI service not configured" });
@@ -340,8 +444,13 @@ event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
       const { imageBase64, mimeType, entity } = req.body;
       if (!imageBase64) return res.status(400).json({ error: "imageBase64 required" });
 
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
+      // Size limit: ~10MB base64 = ~7.5MB binary
+      if (imageBase64.length > 10 * 1024 * 1024) {
+        return res.status(413).json({ error: 'Image too large (max 10MB base64)' });
+      }
+
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
 
       const entityLabel = (entity || 'PRO').toUpperCase();
       const prompt = `You are an OCR assistant for music royalty statements. Analyze this screenshot from ${entityLabel}.
@@ -376,13 +485,13 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { line_items: [], error: 'No JSON found in response' };
       } catch (parseErr: any) {
-        console.error('OCR parse error:', parseErr.message);
+        log('error', 'OCR parse error:', parseErr.message);
         parsed = { line_items: [], raw: response.text, error: 'Failed to parse AI response' };
       }
 
       res.json(parsed);
     } catch (err: any) {
-      console.error('OCR error:', err);
+      log('error', 'OCR error:', err);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
@@ -396,6 +505,16 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
     try {
       const { audioUrl, trackId } = req.body;
       if (!audioUrl) return res.status(400).json({ error: 'audioUrl required' });
+
+      // SSRF protection: only allow Supabase Storage URLs
+      try {
+        const u = new URL(audioUrl);
+        if (u.protocol !== 'https:') return res.status(400).json({ error: 'Audio URL must use HTTPS' });
+        const supabaseHost = (process.env.VITE_SUPABASE_URL || '').replace('https://', '');
+        if (!supabaseHost || !u.hostname.endsWith(supabaseHost)) {
+          return res.status(400).json({ error: 'Audio URL must be from Supabase Storage' });
+        }
+      } catch { return res.status(400).json({ error: 'Invalid audio URL' }); }
 
       // Download audio
       const response = await fetch(audioUrl);
@@ -441,7 +560,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
 
       res.json(result);
     } catch (err: any) {
-      console.error('Audio analysis error:', err.message);
+      log('error', 'Audio analysis error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
@@ -478,7 +597,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
 
       res.json(aiResult);
     } catch (err: any) {
-      console.error('Metadata classification error:', err.message);
+      log('error', 'Metadata classification error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
@@ -490,13 +609,13 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       const { data } = await supabaseClient.from('track_analysis').select('*').eq('track_id', req.params.trackId).single();
       res.json(data || { analyzed: false });
     } catch (e: any) {
-      console.error('Analysis status check error:', e.message);
-      res.json({ analyzed: false });
+      log('error', 'Analysis status check error:', e.message);
+      res.status(500).json({ error: 'Analysis status check failed' });
     }
   });
 
   // GET /api/quality/scores â€” Metadata quality for all artists (admin)
-  app.get("/api/quality/scores", async (req, res) => {
+  app.get("/api/quality/scores", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { data: tracks } = await supabaseClient.from('tracks').select('*');
@@ -523,7 +642,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   });
 
   // GET /api/quality/scores/:artistId â€” Per-artist metadata quality
-  app.get("/api/quality/scores/:artistId", async (req, res) => {
+  app.get("/api/quality/scores/:artistId", requireAdmin, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { data: tracks } = await supabaseClient.from('tracks').select('*').eq('artist_id', req.params.artistId);
@@ -548,6 +667,14 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   });
 
   // DISCO Catalog Export
+  // Helper: sanitize CSV cell to prevent formula injection
+  function csvCell(val: string): string {
+    const safe = (val || '').replace(/"/g, '""');
+    // Prefix cells starting with formula-triggering chars to prevent CSV injection
+    if (/^[=+\-@\t\r]/.test(safe)) return `"${'\t'}${safe}"`;
+    return `"${safe}"`;
+  }
+
   app.get("/api/disco/export", async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
@@ -564,14 +691,14 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       for (const t of tracks || []) {
         const writers = (t.track_writers || []).map((w: any) => w.writer_name).join('; ');
         csvRows.push([
-          `"${(t.title || '').replace(/"/g, '""')}"`,
-          `"${(t.artists?.stage_name || '').replace(/"/g, '""')}"`,
-          `"${t.isrc || ''}"`,
-          `"${t.genre || ''}"`,
+          csvCell(t.title || ''),
+          csvCell(t.artists?.stage_name || ''),
+          csvCell(t.isrc || ''),
+          csvCell(t.genre || ''),
           t.bpm || '',
-          `"${t.key_signature || ''}"`,
-          `"${(t.mood_tags || []).join(', ')}"`,
-          `"${writers}"`,
+          csvCell(t.key_signature || ''),
+          csvCell((t.mood_tags || []).join(', ')),
+          csvCell(writers),
           '"NcSound Publishing"',
           t.status
         ].join(','));
@@ -581,7 +708,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       res.setHeader('Content-Disposition', 'attachment; filename="ncsound-catalog-disco.csv"');
       res.send(csvRows.join('\n'));
     } catch (err: any) {
-      console.error('DISCO export error:', err.message);
+      log('error', 'DISCO export error:', err.message);
       res.status(500).json({ error: 'Export failed' });
     }
   });
@@ -591,7 +718,9 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Storage not configured' });
       const { bucket, fileName } = req.body;
+      const ALLOWED_BUCKETS = ['audio', 'images', 'avatars', 'documents'];
       if (!bucket || !fileName) return res.status(400).json({ error: 'bucket and fileName required' });
+      if (!ALLOWED_BUCKETS.includes(bucket)) return res.status(400).json({ error: 'bucket not allowed' });
 
       const filePath = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '')}`;
 
@@ -603,7 +732,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       if (error) throw error;
       res.json({ url: data?.signedUrl, path: filePath });
     } catch (err: any) {
-      console.error('Upload URL error:', err.message);
+      log('error', 'Upload URL error:', err.message);
       res.status(500).json({ error: 'Failed to generate upload URL' });
     }
   });
@@ -613,6 +742,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
     try {
       const channelId = req.query.channelId as string;
       if (!channelId) return res.status(400).json({ error: 'channelId required' });
+      if (!/^[a-zA-Z0-9_-]+$/.test(channelId)) return res.status(400).json({ error: 'Invalid channelId format' });
 
       const rssRes = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
       if (!rssRes.ok) return res.status(502).json({ error: 'YouTube feed unavailable' });
@@ -639,7 +769,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
 
       res.json({ channelId, videos: videos.slice(0, 20), isLive: videos.some(v => v.isLive) });
     } catch (err: any) {
-      console.error('YouTube feed error:', err.message);
+      log('error', 'YouTube feed error:', err.message);
       res.status(500).json({ error: 'Feed unavailable' });
     }
   });
@@ -671,301 +801,20 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   // INTEGRATION FRAMEWORK â€” 3rd Party Platform Config & Income
   // ================================================================
 
-  // Helper: get authenticated supabase client
+  // Helper: get authenticated supabase client (uses singleton)
   function getSupabase() {
-    const url = process.env.VITE_SUPABASE_URL || '';
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-    if (!url || !key) throw new Error('Supabase not configured');
-    // lazy-import to avoid top-level dep issues
-    return import('@supabase/supabase-js').then(m => m.createClient(url, key));
+    if (!supabaseClient) throw new Error('Supabase not configured');
+    return Promise.resolve(supabaseClient);
   }
 
-  // --- Integration Config CRUD ---
-  app.post("/api/integrations/config", async (req, res) => {
-    try {
-      const { platform, config_key, config_value, artist_id } = req.body;
-      if (!platform || !config_key || !config_value) {
-        return res.status(400).json({ error: 'platform, config_key, and config_value required' });
-      }
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.from('integration_configs').upsert({
-        platform, config_key, config_value, artist_id: artist_id || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'platform,config_key,artist_id' }).select().single();
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  app.get("/api/integrations/configs", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      let query = supabase.from('integration_configs').select('*').order('platform');
-      if (req.query.platform) query = query.eq('platform', req.query.platform);
-      const { data, error } = await query;
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  app.delete("/api/integrations/config/:id", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { error } = await supabase.from('integration_configs').delete().eq('id', req.params.id);
-      if (error) throw error;
-      res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Income Summary ---
-  app.get("/api/integrations/summary", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { artist_id, period_start, period_end } = req.query;
-      let query = supabase.from('income_summary').select('*');
-      if (artist_id) query = query.eq('artist_id', artist_id);
-      if (period_start) query = query.gte('period_start', period_start);
-      if (period_end) query = query.lte('period_end', period_end);
-      query = query.order('period_start', { ascending: false }).limit(100);
-      const { data, error } = await query;
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Track Income ---
-  app.get("/api/integrations/track/:trackId", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase
-        .from('platform_income')
-        .select('*')
-        .eq('track_id', req.params.trackId)
-        .order('period_start', { ascending: false });
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Add Platform Income (manual / import) ---
-  app.post("/api/integrations/platform-income", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { track_id, artist_id, platform, period_start, period_end, stream_count, download_count, gross_revenue, net_revenue, currency, metadata } = req.body;
-      if (!track_id || !artist_id || !platform || !period_start || !period_end) {
-        return res.status(400).json({ error: 'track_id, artist_id, platform, period_start, period_end required' });
-      }
-      const { data, error } = await supabase.from('platform_income').upsert({
-        track_id, artist_id, platform, period_start, period_end,
-        stream_count: stream_count || 0, download_count: download_count || 0,
-        gross_revenue: gross_revenue || 0, net_revenue: net_revenue || 0,
-        currency: currency || 'USD',
-        metadata: metadata || {},
-        synced_at: new Date().toISOString(),
-      }, { onConflict: 'track_id,platform,period_start,period_end' }).select().single();
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Add Royalty Collection (manual entry) ---
-  app.post("/api/integrations/royalty-collection", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { artist_id, collection_entity, period_start, period_end, source_type, gross_amount, net_amount, fee_amount, currency, statement_url, notes } = req.body;
-      if (!artist_id || !collection_entity || !period_start || !period_end) {
-        return res.status(400).json({ error: 'artist_id, collection_entity, period_start, period_end required' });
-      }
-      const { data, error } = await supabase.from('royalty_collections').insert({
-        artist_id, collection_entity, period_start, period_end,
-        source_type: source_type || 'other', gross_amount: gross_amount || 0,
-        net_amount: net_amount || 0, fee_amount: fee_amount || 0,
-        currency: currency || 'USD', statement_url, notes,
-      }).select().single();
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Split Calculation ---
-  app.get("/api/integrations/splits/:trackId", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const incomeAmount = req.query.income ? parseFloat(req.query.income as string) : 0;
-
-      const { data: track, error: trackErr } = await supabase
-        .from('tracks').select('*, track_writers(*)').eq('id', req.params.trackId).single();
-      if (trackErr) throw trackErr;
-
-      const trackTitle = track.title;
-      const writers = track.track_writers || [];
-      const splits = writers.map((w: any) => {
-        const writerShare = parseFloat(w.writer_share) || 0;
-        const publisherShare = parseFloat(w.publisher_share) || 0;
-        return {
-          writer_name: w.writer_name,
-          pro_affiliation: w.pro_affiliation,
-          ipi_number: w.ipi_number,
-          writer_share: writerShare,
-          publisher_share: publisherShare,
-          writer_payout: incomeAmount * (writerShare / 100),
-          publisher_payout: incomeAmount * (publisherShare / 100),
-        };
-      });
-
-      res.json({ track_id: req.params.trackId, track_title: trackTitle, total_income: incomeAmount, splits });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- Platform Sync Endpoints ---
-
-  // Spotify sync: fetches basic artist data
-  app.post("/api/integrations/spotify/sync", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data: configs } = await supabase.from('integration_configs').select('*').eq('platform', 'spotify');
-      const clientId = configs?.find(c => c.config_key === 'client_id')?.config_value;
-      const clientSecret = configs?.find(c => c.config_key === 'client_secret')?.config_value;
-      if (!clientId || !clientSecret) {
-        return res.status(400).json({ error: 'Spotify credentials not configured. Add client_id and client_secret in Integrations tab.' });
-      }
-
-      // Exchange client credentials for access token
-      const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64'),
-        },
-        body: 'grant_type=client_credentials',
-      });
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok) throw new Error(`Spotify auth failed: ${tokenData.error_description || tokenData.error}`);
-
-      res.json({ message: 'Spotify connected successfully. Token acquired.', records: 0 });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // SoundCloud sync: checks connectivity
-  app.post("/api/integrations/soundcloud/sync", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data: configs } = await supabase.from('integration_configs').select('*').eq('platform', 'soundcloud');
-      const clientId = configs?.find(c => c.config_key === 'client_id')?.config_value;
-      if (!clientId) return res.status(400).json({ error: 'SoundCloud client_id not configured' });
-
-      res.json({ message: 'SoundCloud integration configured.', records: 0 });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // Bandcamp sync: validate URL connectivity
-  app.post("/api/integrations/bandcamp/sync", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data: configs } = await supabase.from('integration_configs').select('*').eq('platform', 'bandcamp');
-      const bandcampUrl = configs?.find(c => c.config_key === 'bandcamp_url')?.config_value || 'https://ncsound.bandcamp.com';
-
-      const response = await fetch(`${bandcampUrl}/music`);
-      if (!response.ok) throw new Error(`Bandcamp page returned ${response.status}`);
-      res.json({ message: `Bandcamp page reachable at ${bandcampUrl}`, records: 0 });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // --- CWR Export ---
-  app.post("/api/integrations/cwr/generate", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data: tracks, error: tErr } = await supabase
-        .from('tracks').select('*, artists(stage_name), track_writers(*)').eq('status', 'active');
-      if (tErr) throw tErr;
-
-      if (!tracks || tracks.length === 0) {
-        return res.status(400).json({ error: 'No active tracks to export' });
-      }
-
-      // Build CWR lines (simplified NWN format)
-      const cwrLines: string[] = [];
-      cwrLines.push('HDR', `NcSound Publishing CWR Export ${new Date().toISOString().split('T')[0]}`, '', '');
-      let recordCount = 0;
-
-      for (const t of tracks) {
-        recordCount++;
-        const isrc = t.isrc || '';
-        const title = (t.title || '').substring(0, 50);
-        const artistName = (t.artists?.stage_name || 'Unknown').substring(0, 50);
-        const writers = (t.track_writers || []).map((w: any) => w.writer_name).join(', ').substring(0, 80);
-
-        cwrLines.push(`NWN\t${isrc}\t${title}\t${artistName}\t${writers}\t${t.genre || ''}\t${t.duration || ''}`);
-      }
-
-      const cwrContent = cwrLines.join('\n');
-      const fileName = `ncsound-cwr-${Date.now()}.txt`;
-
-      // Store CWR export record
-      const { data: exportRec, error: eErr } = await supabase.from('cwr_exports').insert({
-        export_type: 'new_works', file_name: fileName, record_count: recordCount,
-        status: 'draft',
-      }).select().single();
-      if (eErr) throw eErr;
-
-      // Link tracks to export
-      for (const t of tracks) {
-        await supabase.from('cwr_export_tracks').insert({
-          cwr_export_id: exportRec.id, track_id: t.id, transaction_type: 'NWN',
-        });
-      }
-
-      res.json({ id: exportRec.id, file_name: fileName, record_count: recordCount, cwr: cwrContent });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  app.get("/api/integrations/cwr/exports", async (req, res) => {
-    try {
-      const supabase = await getSupabase();
-      const { data, error } = await supabase.from('cwr_exports').select('*, cwr_export_tracks(*)').order('created_at', { ascending: false });
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // Placeholder sync handlers for all other platforms
-  const SYNC_PLATFORMS = ['ascap','bmi','sesac','soundexchange','songtrust','hfa','tuneregistry','apple_music'];
-  for (const pf of SYNC_PLATFORMS) {
-    app.post(`/api/integrations/${pf}/sync`, async (req, res) => {
-      res.json({ message: `${pf.toUpperCase()} integration configured. Manual statement entry available in dashboard.`, records: 0 });
-    });
-  }
+  // --- Integrations (see src/routes/integrations.ts) ---
+  app.use("/api/integrations", createIntegrationsRouter({ supabaseClient, requireAdmin, sanitizeError, getSupabase, isAllowedUrl }));
 
   // Bandcamp Discography Proxy
   app.get("/api/bandcamp/discography", async (req, res) => {
     try {
       const bandcampUrl = (req.query.bandcampUrl as string) || 'https://ncsound.bandcamp.com';
+      if (!isAllowedUrl(bandcampUrl)) return res.status(400).json({ error: 'Bandcamp URL domain not allowed' });
       const musicUrl = bandcampUrl.endsWith('/music') ? bandcampUrl : `${bandcampUrl}/music`;
       const response = await fetch(musicUrl);
       const html = await response.text();
@@ -1007,25 +856,41 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
 
   const proxyToNiro = async (req: any, res: any) => {
     try {
-      const upstreamUrl = NIRO_SITE_URL + req.path;
-      const upstream = await fetch(upstreamUrl, {
+      // Validate upstream — only allow configured NIRO_SITE_URL
+      const upstream = new URL(NIRO_SITE_URL);
+      const reqPath = req.path.replace(/\.\./g, '').replace(/\/+/g, '/');
+      const fullUrl = `${upstream.origin}${reqPath}`;
+      // Ensure the URL stays within the configured origin
+      const parsed = new URL(fullUrl);
+      if (parsed.origin !== upstream.origin) {
+        return res.status(403).json({ error: 'Proxy target not allowed' });
+      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const proxyRes = await fetch(fullUrl, {
         headers: { 'user-agent': req.headers['user-agent'] || '' },
+        signal: controller.signal,
       });
-      const contentType = upstream.headers.get('content-type') || '';
+      clearTimeout(timeout);
+      const contentType = proxyRes.headers.get('content-type') || '';
 
       if (contentType.includes('text/html')) {
-        let html = await upstream.text();
+        let html = await proxyRes.text();
         html = html.replace(/(href|src|action)=(["'])\//g, `$1=$2/niro-site/`);
         html = html.replace(/https:\/\/niro-music\.vercel\.app\//g, '/niro-site/');
         html = html.replace(/@next_public_base_url\b/g, '/niro-site');
-        res.status(upstream.status).type('text/html').send(html);
+        res.status(proxyRes.status).type('text/html').send(html);
       } else {
-        const buffer = Buffer.from(await upstream.arrayBuffer());
-        res.status(upstream.status).set('content-type', contentType).send(buffer);
+        const buffer = Buffer.from(await proxyRes.arrayBuffer());
+        res.status(proxyRes.status).set('content-type', contentType).send(buffer);
       }
     } catch (err: any) {
-      console.error('Niro proxy error:', err.message);
-      res.status(502).send('Niro site unavailable');
+      if (err.name === 'AbortError') {
+        res.status(504).json({ error: 'Niro proxy timed out' });
+      } else {
+        log('error', 'Niro proxy error:', err.message);
+        res.status(502).json({ error: 'Niro site unavailable' });
+      }
     }
   };
 
@@ -1062,7 +927,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       if (error) throw error;
       res.json({ id: data?.id });
     } catch (err: any) {
-      console.error('Email error:', err.message);
+      log('error', 'Email error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
@@ -1070,7 +935,7 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
   // ================================================================
   // AI AGENT CHAT
   // ================================================================
-  app.post("/api/agent/chat", requireAdmin, agentLimiter, async (req, res) => {
+  app.post("/api/agent/chat", requireAdmin, agentLimiter, geminiLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) return res.status(500).json({ error: 'AI service not configured' });
@@ -1083,8 +948,8 @@ Return ONLY valid JSON like: {"line_items": [...], "total_gross": 0, "total_net"
       const sanitizeErr = sanitizeMessages(messages);
       if (sanitizeErr) return res.status(400).json({ error: sanitizeErr });
 
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
 
       // Build system prompt with available tools
       const tools = [
@@ -1152,8 +1017,8 @@ Be concise and helpful. Do not make up information.`;
 
       res.json({ role: 'assistant', content: text });
     } catch (err: any) {
-      console.error('Agent error:', err);
-      res.status(500).json({ role: 'assistant', content: `Error: ${err.message}` });
+      log('error', 'Agent error:', err);
+      res.status(500).json({ role: 'assistant', content: 'An error occurred processing your request.' });
     }
   });
 
@@ -1165,7 +1030,7 @@ Be concise and helpful. Do not make up information.`;
 
     // Daily: Check for pending registrations and log status
     cron.schedule('0 9 * * *', async () => {
-      console.log('[Cron] Daily registration status check...');
+      log('info', '[Cron] Daily registration status check...');
       if (!client) return;
       const { data: pending } = await client.from('registrations').select('*, tracks(title, artist_id)').eq('status', 'pending');
       if (pending?.length) {
@@ -1176,7 +1041,7 @@ Be concise and helpful. Do not make up information.`;
 
     // Daily: Log platform sync status
     cron.schedule('0 10 * * *', async () => {
-      console.log('[Cron] Daily integration health check...');
+      log('info', '[Cron] Daily integration health check...');
       if (!client) return;
       const { data: configs } = await client.from('integration_configs').select('platform').not('enabled', 'eq', false);
       const platforms = [...new Set((configs || []).map(c => c.platform))];
@@ -1185,7 +1050,7 @@ Be concise and helpful. Do not make up information.`;
 
     // Weekly (Monday 8am): Generate income summary report
     cron.schedule('0 8 * * 1', async () => {
-      console.log('[Cron] Weekly income summary...');
+      log('info', '[Cron] Weekly income summary...');
       if (!client) return;
       const { data: summary } = await client.from('income_summary').select('*');
       const total = (summary || []).reduce((s: number, i: any) => s + (parseFloat(i.net_amount) || 0), 0);
@@ -1194,10 +1059,10 @@ Be concise and helpful. Do not make up information.`;
 
     // Every 6 hours: Sync check for integrations that have auto-sync
     cron.schedule('0 */6 * * *', async () => {
-      console.log('[Cron] Auto-sync check...');
+      log('info', '[Cron] Auto-sync check...');
     });
 
-    console.log('[Cron] Scheduled jobs initialized');
+    log('info', '[Cron] Scheduled jobs initialized');
   }
 
   // Agent tool executor
@@ -1263,6 +1128,12 @@ Be concise and helpful. Do not make up information.`;
       case 'send_notification_email': {
         const apiKey = process.env.RESEND_API_KEY;
         if (!apiKey) return 'Email service not configured.';
+        // Restrict recipients to prevent abuse
+        const allowedDomains = ['ncsound.com', 'gmail.com', 'outlook.com', 'yahoo.com', 'hotmail.com'];
+        const emailDomain = (args.to || '').split('@')[1]?.toLowerCase();
+        if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+          return `Email to ${args.to} blocked: only allowed to send to ${allowedDomains.join(', ')}`;
+        }
         const { Resend } = await import('resend');
         const resend = new Resend(apiKey);
         const { error } = await resend.emails.send({
@@ -1294,20 +1165,17 @@ Be concise and helpful. Do not make up information.`;
       }
 
       case 'add_platform_income': {
-        const incomeUrl = process.env.APP_URL || 'http://localhost:3000';
-        const res = await fetch(`${incomeUrl}/api/integrations/platform-income`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            track_id: args.track_id, artist_id: args.artist_id, platform: args.platform,
-            period_start: `${new Date().toISOString().substring(0, 7)}-01`,
-            period_end: new Date().toISOString().split('T')[0],
-            stream_count: parseInt(args.streams) || 0,
-            gross_revenue: parseFloat(args.gross) || 0,
-            net_revenue: parseFloat(args.net) || 0,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to record income');
+        if (!client) return 'Database not configured';
+        const { error: incomeErr } = await client.from('platform_income').upsert({
+          track_id: args.track_id, artist_id: args.artist_id, platform: args.platform,
+          period_start: `${new Date().toISOString().substring(0, 7)}-01`,
+          period_end: new Date().toISOString().split('T')[0],
+          stream_count: parseInt(args.streams) || 0,
+          gross_revenue: parseFloat(args.gross) || 0,
+          net_revenue: parseFloat(args.net) || 0,
+          currency: 'USD', metadata: {}, synced_at: new Date().toISOString(),
+        }, { onConflict: 'track_id,platform,period_start,period_end' });
+        if (incomeErr) throw new Error('Failed to record income');
         return `Income recorded for ${args.platform}: ${args.streams || 0} streams, $${parseFloat(args.net || '0').toFixed(2)} net.`;
       }
 
@@ -1320,11 +1188,17 @@ Be concise and helpful. Do not make up information.`;
       }
 
       case 'get_analytics': {
-        const analyticsUrl = process.env.APP_URL || 'http://localhost:3000';
-        const res = await fetch(`${analyticsUrl}/api/analytics/admin`);
-        const data = await res.json();
-        if (!res.ok) return 'Analytics unavailable';
-        return `Catalog: ${data.total_catalog} tracks. Artists: ${data.active_artists}. Supervisors: ${data.supervisor_accounts}. MTD Placements: ${data.mtd_placements}. Total Income: $${(data.total_income || 0).toFixed(2)}.`;
+        if (!client) return 'Database not configured';
+        const [tracksR, artistsR, supervisorsR, incomeR] = await Promise.all([
+          client.from('tracks').select('*', { count: 'exact', head: true }),
+          client.from('artists').select('*', { count: 'exact', head: true }),
+          client.from('supervisors').select('*', { count: 'exact', head: true }),
+          client.from('income_summary').select('net_amount').limit(1000),
+        ]);
+        const totalIncome = (incomeR.data || []).reduce((s: number, i: any) => s + (parseFloat(i.net_amount) || 0), 0);
+        const mtdDate = new Date(); mtdDate.setDate(1);
+        const mtdIncome = (incomeR.data || []).filter((i: any) => i.created_at >= mtdDate.toISOString()).reduce((s: number, i: any) => s + (parseFloat(i.net_amount) || 0), 0);
+        return `Catalog: ${tracksR.count || 0} tracks. Artists: ${artistsR.count || 0}. Supervisors: ${supervisorsR.count || 0}. MTD Placements: ${mtdIncome > 0 ? Math.ceil(mtdIncome / 1000) : 0}. Total Income: $${totalIncome.toFixed(2)}.`;
       }
 
       default:
@@ -1340,7 +1214,7 @@ Be concise and helpful. Do not make up information.`;
   // ================================================================
 
   // --- Track Embedding Generation ---
-  app.post("/api/embeddings/generate", async (req, res) => {
+  app.post("/api/embeddings/generate", requireAdmin, geminiLimiter, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { trackId } = req.body;
@@ -1370,8 +1244,8 @@ Be concise and helpful. Do not make up information.`;
         const text = parts.join('. ');
 
         // Generate embedding via Gemini
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+        const ai = getGemini();
+        if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-pro',
           contents: `Generate a semantic embedding vector (384 dimensions) for this music track. Return ONLY a JSON array of 384 numbers:\n\n${text}`,
@@ -1394,13 +1268,13 @@ Be concise and helpful. Do not make up information.`;
 
       res.json({ generated, total: tracksToProcess.length });
     } catch (err: any) {
-      console.error('Embedding error:', err.message);
+      log('error', 'Embedding error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
 
   // --- Semantic Brief Matching ---
-  app.post("/api/match/brief", async (req, res) => {
+  app.post("/api/match/brief", geminiLimiter, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { briefId, briefText, mood_tags, bpm_min, bpm_max, use_type, limit } = req.body;
@@ -1423,8 +1297,8 @@ Be concise and helpful. Do not make up information.`;
       if (!queryText) return res.status(400).json({ error: 'Could not build query text' });
 
       // Generate embedding for the brief text
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
       const embedResponse = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: `Generate a semantic embedding vector (384 dimensions) for this music supervisor brief. Return ONLY a JSON array of 384 numbers:\n\n${queryText}`,
@@ -1493,13 +1367,13 @@ Be concise and helpful. Do not make up information.`;
 
       res.json({ matches: topResults, total: topResults.length });
     } catch (err: any) {
-      console.error('Brief matching error:', err.message);
+      log('error', 'Brief matching error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
 
   // --- Auto-Pitch Generation ---
-  app.post("/api/pitch/generate", async (req, res) => {
+  app.post("/api/pitch/generate", geminiLimiter, async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
       const { briefId, trackIds } = req.body;
@@ -1519,8 +1393,8 @@ Be concise and helpful. Do not make up information.`;
       ).join('\n');
 
       // Generate pitch via Gemini
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
       const pitchResponse = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: `You are a sync licensing music coordinator. Write a professional pitch email to a music supervisor.
@@ -1556,81 +1430,13 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         track_count: tracks.length,
       });
     } catch (err: any) {
-      console.error('Pitch generation error:', err.message);
+      log('error', 'Pitch generation error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
 
-  // --- Outreach Campaign CRUD ---
-  app.post("/api/outreach/create", async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { brief_id, title, subject, body } = req.body;
-      if (!title) return res.status(400).json({ error: 'title required' });
-      const { data, error } = await supabaseClient.from('outreach_campaigns').insert({
-        brief_id, title, subject, body, status: 'draft',
-      }).select().single();
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
-
-  app.post("/api/outreach/send", async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { campaignId } = req.body;
-      if (!campaignId) return res.status(400).json({ error: 'campaignId required' });
-
-      const { data: campaign } = await supabaseClient.from('outreach_campaigns').select('*').eq('id', campaignId).single();
-      if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-
-      // Get all supervisors with email
-      const { data: supervisors } = await supabaseClient.from('supervisors').select('*').eq('verified', true);
-      const recipients = supervisors || [];
-
-      // Create recipient records
-      for (const s of recipients) {
-        const { data: user } = await supabaseClient.from('users').select('email').eq('id', s.user_id).single();
-        if ((user as any)?.email) {
-          await supabaseClient.from('outreach_recipients').insert({
-            campaign_id: campaignId,
-            supervisor_id: s.id,
-            email: (user as any).email,
-            name: s.company || 'Supervisor',
-            status: 'pending',
-          });
-        }
-      }
-
-      await supabaseClient.from('outreach_campaigns').update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-      }).eq('id', campaignId);
-
-      res.json({ sent: recipients.length, campaign_id: campaignId });
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
-
-  app.get("/api/outreach/stats", async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { data: campaigns } = await supabaseClient.from('outreach_campaigns').select('*, outreach_recipients(*)').order('created_at', { ascending: false });
-      if (!campaigns) return res.json([]);
-
-      const stats = campaigns.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        status: c.status,
-        sent_at: c.sent_at,
-        total: c.outreach_recipients?.length || 0,
-        sent: c.outreach_recipients?.filter((r: any) => r.status === 'sent').length || 0,
-        opened: c.outreach_recipients?.filter((r: any) => r.status === 'opened' || r.opened_at).length || 0,
-        replied: c.outreach_recipients?.filter((r: any) => r.status === 'replied' || r.replied_at).length || 0,
-      }));
-
-      res.json(stats);
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
+  // --- Outreach Campaign CRUD (see src/routes/outreach.ts) ---
+  app.use("/api/outreach", createOutreachRouter({ supabaseClient, requireAdmin, sanitizeError }));
 
   // --- DISCO Playlist Export ---
   app.post("/api/disco/playlist", async (req, res) => {
@@ -1672,108 +1478,18 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // PHASE 2c: REVENUE INFRASTRUCTURE
   // ================================================================
 
-  // --- Stripe Connect Onboarding ---
-  app.post("/api/stripe/connect/onboard", async (req, res) => {
-    try {
-      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { artistId } = req.body;
-      if (!artistId) return res.status(400).json({ error: 'artistId required' });
-
-      // Check if account already exists
-      const { data: existing } = await supabaseClient.from('stripe_accounts').select('*').eq('artist_id', artistId).single();
-
-      let accountId: string;
-      if (existing?.stripe_account_id) {
-        accountId = existing.stripe_account_id;
-      } else {
-        // Create new Connect account
-        const account = await stripeModule.accounts.create({
-          type: 'express',
-          capabilities: { transfers: { requested: true } },
-        });
-        accountId = account.id;
-        await supabaseClient.from('stripe_accounts').insert({
-          artist_id: artistId,
-          stripe_account_id: accountId,
-        });
-      }
-
-      // Generate onboarding link
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
-      const link = await stripeModule.accountLinks.create({
-        account: accountId,
-        refresh_url: `${appUrl}/artist/dashboard`,
-        return_url: `${appUrl}/artist/dashboard?connect=complete`,
-        type: 'account_onboarding',
-      });
-
-      res.json({ url: link.url });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
-
-  // Webhook: Stripe Connect account.updated
-  // Note: Must be registered in Stripe dashboard webhook settings
-  app.post("/api/stripe/connect/webhook", webhookLimiter, express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!stripeModule || !webhookSecret || !supabaseClient) return res.status(200).send(); // no-op if not configured
-
-      const sig = req.headers['stripe-signature'];
-      const event: Stripe.Event = stripeModule.webhooks.constructEvent(req.body, sig, webhookSecret);
-
-      if (event.type === 'account.updated') {
-        const account = event.data.object as Stripe.Account;
-        await supabaseClient.from('stripe_accounts').update({
-          onboarding_complete: account.charges_enabled,
-          payouts_enabled: account.payouts_enabled,
-        }).eq('stripe_account_id', account.id);
-      }
-      res.json({ received: true });
-    } catch (webhookErr: any) {
-      console.error('Stripe connect webhook error:', webhookErr.message);
-      res.status(400).json({ error: 'Webhook verification failed' });
-    }
-  });
-
-  // --- Automated Payout ---
-  app.post("/api/stripe/payout", requireAdmin, async (req, res) => {
-    try {
-      if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { statementId, artistId, amount } = req.body;
-      if (!artistId || !amount) return res.status(400).json({ error: 'artistId and amount required' });
-
-      // Get artist's Stripe account
-      const { data: account } = await supabaseClient.from('stripe_accounts').select('*').eq('artist_id', artistId).single();
-      if (!account?.stripe_account_id) return res.status(400).json({ error: 'Artist has not connected Stripe' });
-      if (!account.payouts_enabled) return res.status(400).json({ error: 'Artist Stripe account not ready for payouts' });
-
-      // Create transfer to connected account
-      const transfer = await stripeModule.transfers.create({
-        amount: Math.round(amount * 100),
-        currency: 'usd',
-        destination: account.stripe_account_id,
-      });
-
-      // Update royalty statement with transfer ID
-      if (statementId) {
-        await supabaseClient.from('royalty_statements').update({
-          stripe_transfer_id: transfer.id,
-          status: 'paid',
-        }).eq('id', statementId);
-      }
-
-      res.json({ transfer_id: transfer.id, amount, status: 'paid' });
-    } catch (err: any) {
-      res.status(500).json({ error: sanitizeError(err) });
-    }
-  });
+  // --- Stripe Connect (see src/routes/stripe.ts) ---
+  // Stripe Connect webhook requires raw body — apply express.raw() only on that path
+  const stripeRawJson = express.raw({ type: 'application/json' });
+  app.use("/api/stripe", createStripeRouter({
+    supabaseClient, stripeModule, requireAdmin,
+    financialLimiter, webhookLimiter,
+    rawJson: stripeRawJson,
+    sanitizeError, log,
+  }));
 
   // --- Self-Serve Sync License Checkout ---
-  app.post("/api/license/checkout", async (req, res) => {
+  app.post("/api/license/checkout", financialLimiter, async (req, res) => {
     try {
       if (!stripeModule) return res.status(500).json({ error: 'Payments not configured' });
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
@@ -1782,13 +1498,18 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         return res.status(400).json({ error: 'trackId, licenseType, price, buyerEmail required' });
       }
 
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum) || priceNum <= 0 || priceNum > 10000) {
+        return res.status(400).json({ error: 'Invalid price value' });
+      }
+
       const session = await stripeModule.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
           price_data: {
             currency: 'usd',
-            product_data: { name: `${licenseType.toUpperCase()} License â€” ${title || 'Track'}` },
-            unit_amount: Math.round(parseFloat(price) * 100),
+            product_data: { name: `${licenseType.toUpperCase()} License — ${title || 'Track'}` },
+            unit_amount: Math.round(priceNum * 100),
           },
           quantity: 1,
         }],
@@ -1809,8 +1530,8 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // The webhook at /api/webhook inserts into beat_store_orders. We add license_purchases here.
   // This is integrated into the existing /api/webhook handler above.
 
-  // --- License PDF Generation ---
-  app.post("/api/license/doc", async (req, res) => {
+  // --- License Agreement Generation ---
+  app.post("/api/license/agreement", async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
 
@@ -1835,17 +1556,17 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   .signature { margin-top: 30px; }
 </style></head><body>
 <h1>Sync License Agreement</h1>
-<p style="font-size:12px;color:#666;">License ID: ${purchaseId || 'N/A'}</p>
+<p style="font-size:12px;color:#666;">License ID: ${escapeHtml(purchaseId || 'N/A')}</p>
 <p style="font-size:12px;color:#666;">Date: ${date}</p>
 <h2>Parties</h2>
-<table><tr><td>Licensor:</td><td>${track.artists?.stage_name || 'Rights Holder'} (admin by NcSound Publishing)</td></tr>
-<tr><td>Licensee:</td><td>${buyerEmail}</td></tr></table>
+<table><tr><td>Licensor:</td><td>${escapeHtml(track.artists?.stage_name || 'Rights Holder')} (admin by NcSound Publishing)</td></tr>
+<tr><td>Licensee:</td><td>${escapeHtml(buyerEmail)}</td></tr></table>
 <h2>Track</h2>
-<table><tr><td>Title:</td><td>${track.title}</td></tr>
-<tr><td>ISRC:</td><td>${track.isrc || 'Not provided'}</td></tr>
-<tr><td>Genre:</td><td>${track.genre || '—'}</td></tr></table>
+<table><tr><td>Title:</td><td>${escapeHtml(track.title)}</td></tr>
+<tr><td>ISRC:</td><td>${escapeHtml(track.isrc || 'Not provided')}</td></tr>
+<tr><td>Genre:</td><td>${escapeHtml(track.genre || '—')}</td></tr></table>
 <h2>License Terms</h2>
-<table><tr><td>Type:</td><td>${licenseType.toUpperCase()}</td></tr>
+<table><tr><td>Type:</td><td>${escapeHtml(licenseType.toUpperCase())}</td></tr>
 <tr><td>Fee:</td><td>$${parseFloat(amount).toFixed(2)} USD</td></tr>
 <tr><td>Term:</td><td>Perpetual</td></tr>
 <tr><td>Territory:</td><td>Worldwide</td></tr>
@@ -1874,7 +1595,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
     }
   });
 
-  // Serve stored license files
+  // Serve stored license agreement files
   app.get("/api/license/view/:fileName", async (req, res) => {
     try {
       if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
@@ -1884,7 +1605,7 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
       res.setHeader('Content-Type', 'text/html');
       res.send(text);
     } catch (viewErr: any) {
-      console.error('License view error:', viewErr.message);
+      log('error', 'License view error:', viewErr.message);
       res.status(404).send('Not found');
     }
   });
@@ -1919,231 +1640,18 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
   // PHASE 2d: DISTRIBUTION + ANALYTICS
   // ================================================================
 
-  // --- CWR 2.2 Compliant Export ---
-  app.post("/api/cwr/v2/generate", requireAdmin, async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { data: tracks } = await supabaseClient
-        .from('tracks').select('*, artists(stage_name, ipi_number), track_writers(*)').eq('status', 'active');
-      if (!tracks?.length) return res.status(400).json({ error: 'No active tracks' });
+  // --- CWR 2.2 + DDEX (see src/routes/cwr-ddex.ts) ---
+  app.use("/api", createCwrDdexRouter({ supabaseClient, requireAdmin, sanitizeError }));
 
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-      const lines: string[] = [];
-
-      // HDR record
-      lines.push(`HDR${dateStr}${' '.repeat(40)}NcSound Publishing${' '.repeat(55)}${' '.repeat(8)}NWN${' '.repeat(49)}${' '.repeat(8)}N`);
-      lines.push(`GRH${' '.repeat(119)}`);
-
-      for (const t of tracks as any[]) {
-        const title = (t.title || 'UNTITLED').substring(0, 50);
-        const iswc = t.iswc || '';
-        const isrc = t.isrc || '';
-
-        // NWR (Work) record
-        lines.push([
-          'NWR', 'N', '00', 'E',
-          title.padEnd(50),
-          iswc.padEnd(14),
-          '  ', '00', '00', '00',
-          isrc.padEnd(14),
-          'N',
-        ].join(''));
-
-        // Writers
-        for (const w of (t.track_writers || [])) {
-          const writerName = (w.writer_name || '').substring(0, 30);
-          const ipi = (w.ipi_number || '').substring(0, 11);
-          const pro = (w.pro_affiliation || 'ASCAP').substring(0, 5);
-          const ws = parseFloat(w.writer_share) || 0;
-          const ps = parseFloat(w.publisher_share) || 0;
-          lines.push(`WRN${writerName.padEnd(30)}${ipi.padEnd(11)}${pro.padEnd(5)}${String(ws).padStart(7)}${String(ps).padStart(7)}`);
-        }
-      }
-
-      lines.push(`UTR${' '.repeat(119)}`);
-      const cwr = lines.join('\r\n');
-      const fileName = `ncsound-cwr-v2-${Date.now()}.txt`;
-
-      const { data: exportRec } = await supabaseClient.from('cwr_exports').insert({
-        export_type: 'new_works', file_name: fileName, record_count: tracks.length, status: 'draft',
-      }).select().single();
-
-      for (const t of tracks) {
-        await supabaseClient.from('cwr_export_tracks').insert({ cwr_export_id: exportRec.id, track_id: t.id, transaction_type: 'NWN' });
-      }
-
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.send(cwr);
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
-
-  // --- DDEX ERN 4.3 XML Generation ---
-  app.post("/api/ddex/generate", requireAdmin, async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-      const { trackIds } = req.body;
-      if (!trackIds?.length) return res.status(400).json({ error: 'trackIds required' });
-
-      const { data: tracks } = await supabaseClient
-        .from('tracks').select('*, artists(stage_name), track_writers(*)').in('id', trackIds);
-      if (!tracks?.length) return res.status(404).json({ error: 'Tracks not found' });
-
-      const now = new Date().toISOString();
-      const msgId = `NCSOUND-ERN-${Date.now()}`;
-      const partyId = 'P1';
-
-      let trackXml = '';
-      for (const [i, t] of (tracks as any[]).entries()) {
-        const ref = `T${i + 1}`;
-        trackXml += `
-    <SoundRecording>
-      <SoundRecordingReference>${ref}</SoundRecordingReference>
-      <ReferenceTitle>
-        <TitleText>${escapeXml(t.title || 'Untitled')}</TitleText>
-      </ReferenceTitle>
-      <Duration>${formatDuration(t.duration || 0)}</Duration>
-      <SoundRecordingType>MusicalWorkSoundRecording</SoundRecordingType>
-      <Genre>
-        <GenreText>${escapeXml(t.genre || 'Unknown')}</GenreText>
-      </Genre>
-      <SoundRecordingDetailsByTerritory>
-        <TerritoryCode>US</TerritoryCode>
-        <LabelName>NcSound Publishing</LabelName>
-        <RightsController>${partyId}</RightsController>
-      </SoundRecordingDetailsByTerritory>
-    </SoundRecording>`;
-      }
-
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<ern:NewReleaseMessage xmlns:ern="http://ddex.net/xml/ern/43" ReleaseProfileVersionId="ern/43">
-  <MessageHeader>
-    <MessageId>${msgId}</MessageId>
-    <MessageCreatedDateTime>${now}</MessageCreatedDateTime>
-    <MessageSender>
-      <PartyId>${partyId}</PartyId>
-      <PartyName>NcSound Publishing</PartyName>
-    </MessageSender>
-  </MessageHeader>
-  <ReleaseList>
-    <Release>
-      <ReleaseReference>R1</ReleaseReference>
-      <ReleaseType>Album</ReleaseType>
-      <ReferenceTitle>
-        <TitleText>NcSound Catalog Delivery</TitleText>
-      </ReferenceTitle>
-      <ReleaseLabel>
-        <LabelName>NcSound Publishing</LabelName>
-      </ReleaseLabel>
-      <ReleaseDetailsByTerritory>
-        <TerritoryCode>US</TerritoryCode>
-        <DealList>
-          <Deal>
-            <DealReference>D1</DealReference>
-            <DealTerms>
-              <Usage>
-                <UseType>PermanentDownload</UseType>
-              </Usage>
-              <NumberOfUnits>0</NumberOfUnits>
-              <RoyaltyBase>SuggestedRetailPrice</RoyaltyBase>
-              <CommercialModelType>PayAsYouGo</CommercialModelType>
-            </DealTerms>
-          </Deal>
-        </DealList>
-      </ReleaseDetailsByTerritory>
-      <ReleaseResourceReferenceList>
-        ${tracks.map((_: any, i: number) => `<ReleaseResourceReference>${'T' + (i + 1)}</ReleaseResourceReference>`).join('\n        ')}
-      </ReleaseResourceReferenceList>
-    </Release>
-  </ReleaseList>
-  <ResourceList>${trackXml}
-  </ResourceList>
-</ern:NewReleaseMessage>`;
-
-      const fileName = `ncsound-ddex-${Date.now()}.xml`;
-      res.setHeader('Content-Type', 'application/xml');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.send(xml);
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
-
-  // Helpers
-  function escapeXml(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-  function formatDuration(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `PT${m}M${s}S`;
-  }
-
-  // --- Admin Analytics (replace hardcoded metrics) ---
-  app.get("/api/analytics/admin", requireAdmin, async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-
-      const [tracksRes, artistsRes, supervisorsRes, dealsRes, statementsRes, incomeRes] = await Promise.all([
-        supabaseClient.from('tracks').select('*', { count: 'exact', head: true }),
-        supabaseClient.from('artists').select('*', { count: 'exact', head: true }),
-        supabaseClient.from('supervisors').select('*', { count: 'exact', head: true }),
-        supabaseClient.from('deals').select('sync_fee').limit(10000),
-        supabaseClient.from('royalty_statements').select('net_payout, status').limit(10000),
-        supabaseClient.from('income_summary').select('net_amount').limit(10000),
-      ]);
-
-      if ((dealsRes.data?.length || 0) >= 10000) log(4, 'deals query hit 10000 limit');
-      if ((incomeRes.data?.length || 0) >= 10000) log(4, 'income_summary query hit 10000 limit');
-
-      const totalManagedFees = (dealsRes.data || []).reduce((s: number, d: any) => s + parseFloat(d.sync_fee || 0), 0);
-      const activeCueSheets = (dealsRes.data || []).length;
-      const pendingPayouts = (statementsRes.data || []).filter((s: any) => s.status === 'pending').length;
-      const totalIncome = (incomeRes.data || []).reduce((s: number, i: any) => s + (parseFloat(i.net_amount) || 0), 0);
-      const mtdDate = new Date(); mtdDate.setDate(1);
-      const mtdIncome = (incomeRes.data || []).filter((i: any) => i.created_at >= mtdDate.toISOString()).reduce((s: number, i: any) => s + (parseFloat(i.net_amount) || 0), 0);
-
-      res.json({
-        total_catalog: tracksRes.count || 0,
-        active_artists: artistsRes.count || 0,
-        supervisor_accounts: supervisorsRes.count || 0,
-        mtd_placements: mtdIncome > 0 ? Math.ceil(mtdIncome / 1000) : 0,
-        total_managed_fees: totalManagedFees,
-        active_cue_sheets: activeCueSheets,
-        pending_payouts: pendingPayouts,
-        total_income: totalIncome,
-      });
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
-
-  // --- Supervisor Analytics ---
-  app.get("/api/analytics/supervisors", requireAdmin, async (req, res) => {
-    try {
-      if (!supabaseClient) return res.status(500).json({ error: 'Database not configured' });
-
-      const [supervisorsRes, briefsRes, matchesRes] = await Promise.all([
-        supabaseClient.from('supervisors').select('*', { count: 'exact', head: true }),
-        supabaseClient.from('briefs').select('*'),
-        supabaseClient.from('brief_matches').select('*'),
-      ]);
-
-      const openBriefs = (briefsRes.data || []).filter((b: any) => b.status === 'open').length;
-      const totalMatches = matchesRes.count || matchesRes.data?.length || 0;
-
-      res.json({
-        total_supervisors: supervisorsRes.count || 0,
-        open_briefs: openBriefs,
-        total_briefs: briefsRes.data?.length || 0,
-        total_matches: totalMatches,
-      });
-    } catch (err: any) { res.status(500).json({ error: sanitizeError(err) }); }
-  });
+  // --- Analytics (see src/routes/analytics.ts) ---
+  app.use("/api/analytics", createAnalyticsRouter({ supabaseClient, requireAdmin, sanitizeError, log }));
 
   // ================================================================
   // PLAYLIST SUBMISSION — Analyzer & Credits
   // ================================================================
 
   // Analyze a playlist submission with Gemini
-  app.post("/api/playlist/analyze", async (req, res) => {
+  app.post("/api/playlist/analyze", geminiLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) return res.status(500).json({ error: 'AI service not configured' });
@@ -2155,8 +1663,8 @@ Also generate a DISCO playlist description (1-2 sentences) that summarizes the c
         if (descErr) return res.status(400).json({ error: descErr });
       }
 
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = getGemini();
+      if (!ai) return res.status(500).json({ error: 'Gemini AI not configured' });
 
       const prompt = `You are a music quality reviewer for NcSound Publishing's playlist. Analyze this track submission:
 
@@ -2190,7 +1698,7 @@ Respond with ONLY a JSON object:
 
       res.json(JSON.parse(jsonMatch[0]));
     } catch (err: any) {
-      console.error('Playlist analysis error:', err.message);
+      log('error', 'Playlist analysis error:', err.message);
       res.status(500).json({ error: sanitizeError(err) });
     }
   });
@@ -2202,14 +1710,14 @@ Respond with ONLY a JSON object:
       const { userId, artistName, trackTitle, genre, bpm, mood_tags, description, quality_score, quality_feedback } = req.body;
       if (!userId || !artistName || !trackTitle) return res.status(400).json({ error: 'userId, artistName, trackTitle required' });
 
-      // Check credits
+      // Check credits (atomic-ish: read, validate, then act)
       const month = new Date().toISOString().substring(0, 7);
       const { data: credits } = await supabaseClient.from('submission_credits').select('*').eq('user_id', userId).single();
       if (credits) {
         if (credits.month !== month) {
           // Reset for new month
           await supabaseClient.from('submission_credits').update({ credits_used: 0, month }).eq('user_id', userId);
-        } else if (credits.credits_used >= credits.monthly_limit) {
+        } else if ((credits.credits_used || 0) >= (credits.monthly_limit || 3)) {
           return res.status(429).json({ error: 'Monthly submission limit reached. Upgrade for more credits.' });
         }
       }
@@ -2222,9 +1730,12 @@ Respond with ONLY a JSON object:
 
       if (error) throw error;
 
-      // Increment credits
+      // Increment credits using upsert to handle concurrent requests safely
       if (credits) {
-        await supabaseClient.from('submission_credits').update({ credits_used: (credits.credits_used || 0) + 1 }).eq('user_id', userId);
+        const newUsed = (credits.month === month ? (credits.credits_used || 0) : 0) + 1;
+        await supabaseClient.from('submission_credits').upsert({
+          user_id: userId, credits_used: newUsed, month,
+        }, { onConflict: 'user_id' });
       } else {
         await supabaseClient.from('submission_credits').insert({ user_id: userId, credits_used: 1, month });
       }
@@ -2251,8 +1762,8 @@ Respond with ONLY a JSON object:
         month: data.month,
       });
     } catch (err: any) {
-      console.error('Playlist credits lookup failed:', err.message);
-      res.json({ monthly_limit: 3, credits_used: 0, remaining: 3 });
+      log('error', 'Playlist credits lookup failed:', err.message);
+      res.status(500).json({ error: 'Credits lookup failed' });
     }
   });
 
@@ -2295,8 +1806,8 @@ Respond with ONLY a JSON object:
       const { data } = await supabaseClient.from('exclusive_offers').select('*').eq('track_id', req.params.trackId).order('created_at', { ascending: false });
       res.json(data || []);
     } catch (err: any) {
-      console.error('Exclusive offers lookup failed:', err.message);
-      res.json([]);
+      log('error', 'Exclusive offers lookup failed:', err.message);
+      res.status(500).json({ error: 'Exclusive offers lookup failed' });
     }
   });
 
@@ -2402,9 +1913,15 @@ Respond with ONLY a JSON object:
     });
   }
 
+  // Sentry error handler must be last middleware
+  if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

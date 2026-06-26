@@ -1,0 +1,38 @@
+name: "[Sprint 1] Full Artist E2E Workflow"
+description: "Implement complete artist journey: Signup → Login → Upload → Dashboard"
+labels: ["sprint-1", "e2e", "artist", "priority:high"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Objective
+        Implement a complete end-to-end Playwright test for the artist journey.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] Test passes in CI on Chromium, Firefox, WebKit
+        - [ ] Uses seeded test data from `seed-test-accounts.sql`
+        - [ ] Mocks Supabase storage uploads to avoid external dependency
+        - [ ] Validates UI states (loading, success, error) at each step
+        - [ ] Covers: `/artist/register` → `/artist/login` → `/artist/upload` → `/artist/dashboard`
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      value: |
+        - Use `test.mode` file for Stripe mocking
+        - Leverage existing `e2e/auth.spec.ts` patterns
+        - Mock Supabase storage in test setup
+        - Test file: `e2e/artist-workflow.spec.ts`
+
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Owner
+      options:
+        - "@artist-team"
+        - "@core-team"

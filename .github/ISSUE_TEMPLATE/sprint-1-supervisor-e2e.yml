@@ -1,0 +1,36 @@
+name: "[Sprint 1] Supervisor Registration & Brief Submission"
+description: "E2E test for supervisor registration and brief submission workflow"
+labels: ["sprint-1", "e2e", "supervisor", "priority:high"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Objective
+        Implement E2E tests for supervisor workflows.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] Supervisor registration at `/supervisor/register`
+        - [ ] Brief submission at `/submit-brief`
+        - [ ] Form validation and success states
+        - [ ] Data persists in seeded Supabase test environment
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      value: |
+        - Extend patterns from `e2e/workflows.spec.ts` (lines 105-157)
+        - Use seeded test accounts
+        - Test file: `e2e/supervisor-workflow.spec.ts`
+
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Owner
+      options:
+        - "@admin-team"
+        - "@core-team"

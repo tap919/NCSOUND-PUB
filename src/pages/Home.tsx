@@ -11,6 +11,7 @@ export default function Home() {
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [featuredTracks, setFeaturedTracks] = useState<any[]>([]);
+  const [stats, setStats] = useState({ tracks: 0, artists: 0 });
 
   useEffect(() => {
     let ignore = false;
@@ -36,6 +37,16 @@ export default function Home() {
     return () => {
       ignore = true;
     };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const [tracksRes, artistsRes] = await Promise.all([
+        supabase.from('tracks').select('*', { count: 'exact', head: true }),
+        supabase.from('artists').select('*', { count: 'exact', head: true }),
+      ]);
+      setStats({ tracks: tracksRes.count || 0, artists: artistsRes.count || 0 });
+    })();
   }, []);
 
   return (
@@ -217,11 +228,11 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
             <div>
-              <p className="text-4xl font-heading text-orange-500">14</p>
+              <p className="text-4xl font-heading text-orange-500">{stats.tracks || '—'}</p>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-500 mt-2">Tracks in Catalog</p>
             </div>
             <div>
-              <p className="text-4xl font-heading text-orange-500">3</p>
+              <p className="text-4xl font-heading text-orange-500">{stats.artists || '—'}</p>
               <p className="text-xs font-bold uppercase tracking-widest text-neutral-500 mt-2">Artists Onboarded</p>
             </div>
             <div>
@@ -248,7 +259,7 @@ export default function Home() {
               <p className="mx-auto mt-4 max-w-xl text-center text-lg font-sans text-neutral-400">
                 Sign up to receive alerts when music supervisors submit briefs looking for new tracks. Be the first to get your music pitched.
               </p>
-              <form className="mx-auto mt-10 flex max-w-md gap-x-0 relative group" onSubmit={async (e) => { e.preventDefault(); if (!email || submitting) return; setSubmitting(true); await supabase.from('contact_submissions').insert({ type: 'newsletter', first_name: '', email, message: 'Newsletter signup' } as any); setSubscribed(true); }}>
+              <form className="mx-auto mt-10 flex max-w-md gap-x-0 relative group" onSubmit={async (e) => { e.preventDefault(); if (!email || submitting) return; setSubmitting(true); try { const { error } = await supabase.from('contact_submissions').insert({ type: 'newsletter', first_name: '', email, message: 'Newsletter signup' } as any); if (error) throw error; setSubscribed(true); } catch { alert('Subscription failed. Please try again.'); } finally { setSubmitting(false); } }}>
                 {subscribed ? (
                   <div className="w-full bg-green-900/50 border border-green-500/30 px-5 py-4 text-green-200 text-sm font-bold uppercase tracking-widest text-center">You're subscribed!</div>
                 ) : (

@@ -129,7 +129,7 @@ export default function TrackDetail() {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-orange-500 mb-3">Mood Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {track.mood_tags.map((m: string) => (
+                  {track.mood_tags?.map((m: string) => (
                     <span key={m} className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-sm text-white font-sans">{m}</span>
                   ))}
                 </div>
@@ -139,7 +139,7 @@ export default function TrackDetail() {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-widest text-orange-500 mb-3">Instrumentation</h3>
                 <div className="flex flex-wrap gap-2">
-                  {track.instrumentation.map((i: string) => (
+                  {track.instrumentation?.map((i: string) => (
                     <span key={i} className="bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-sm text-white font-sans">{i}</span>
                   ))}
                 </div>

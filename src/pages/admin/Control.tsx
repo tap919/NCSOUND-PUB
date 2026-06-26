@@ -139,6 +139,7 @@ function MyMusicPanel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let ignore = false;
     const load = async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(
@@ -146,10 +147,13 @@ function MyMusicPanel() {
         import.meta.env.VITE_SUPABASE_ANON_KEY || ''
       );
       const { data } = await supabase.from('tracks').select('*, track_writers(*)').order('created_at', { ascending: false });
-      if (data) setTracks(data as any);
-      setLoading(false);
+      if (!ignore) {
+        if (data) setTracks(data as any);
+        setLoading(false);
+      }
     };
     load();
+    return () => { ignore = true; };
   }, []);
 
   return (

@@ -1,0 +1,38 @@
+name: "[Sprint 1] 80%+ Coverage: Admin & Artist Dashboards"
+description: "Increase unit/integration test coverage for dashboard components"
+labels: ["sprint-1", "unit", "coverage", "priority:high"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Objective
+        Raise test coverage for critical dashboard components to 80%+.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] `src/pages/admin/Dashboard.tsx` (currently ~14% coverage) → 80%+
+        - [ ] `src/pages/artist/Dashboard.tsx` (currently ~28% coverage) → 80%+
+        - [ ] `src/pages/admin/Control.tsx` (currently ~55% coverage) → 80%+
+        - [ ] `src/pages/artist/Upload.tsx` (currently ~26% coverage) → 80%+
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      value: |
+        - Focus on testing analytics queries, user management, and chart rendering
+        - Mock Supabase queries using existing patterns in `src/lib/__tests__/supabase.test.ts`
+        - Test loading, empty, error, and success states
+        - Run `npm run test:coverage` to verify targets
+
+  - type: dropdown
+    id: owner
+    attributes:
+      label: Owner
+      options:
+        - "@core-team"
+        - "@artist-team"
+        - "@admin-team"

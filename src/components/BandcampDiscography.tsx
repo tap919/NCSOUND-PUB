@@ -15,6 +15,7 @@ export function BandcampDiscography({ artist, bandcampUsername }: { artist?: str
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let ignore = false;
     // If artist has their own Bandcamp page, use that; otherwise fall back to main NcSound page
     const baseUrl = bandcampUsername
       ? `https://${bandcampUsername}.bandcamp.com`
@@ -23,6 +24,7 @@ export function BandcampDiscography({ artist, bandcampUsername }: { artist?: str
     fetch(`/api/bandcamp/discography?artist=${artist || ''}&bandcampUrl=${encodeURIComponent(baseUrl)}`)
       .then(r => r.json())
       .then(data => {
+        if (ignore) return;
         let items = data.releases || [];
         if (artist) {
           items = items.filter((r: BandcampRelease) =>
@@ -31,8 +33,9 @@ export function BandcampDiscography({ artist, bandcampUsername }: { artist?: str
         }
         setReleases(items);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!ignore) setError(true); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
   }, [artist, bandcampUsername]);
 
   if (loading) {

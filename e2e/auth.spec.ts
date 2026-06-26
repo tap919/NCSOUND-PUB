@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-const ARTIST_EMAIL = process.env.TEST_ARTIST_EMAIL || '';
-const ARTIST_PASSWORD = process.env.TEST_ARTIST_PASSWORD || '';
-const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || '';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || '';
+const ARTIST_EMAIL = process.env.TEST_ARTIST_EMAIL || 'testartist@ncsound.test';
+const ARTIST_PASSWORD = process.env.TEST_ARTIST_PASSWORD || 'test123';
+const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'testadmin@ncsound.test';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'test123';
 
-const hasArtistCreds = !!(ARTIST_EMAIL && ARTIST_PASSWORD);
-const hasAdminCreds = !!(ADMIN_EMAIL && ADMIN_PASSWORD);
+const hasArtistCreds = true;
+const hasAdminCreds = true;
 
 test.describe('Artist Auth', () => {
   test('login page renders all elements', async ({ page }) => {

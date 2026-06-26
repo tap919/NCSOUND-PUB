@@ -21,10 +21,16 @@ INSERT INTO auth.users (
   now(), now(), now(), '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users (id, email, full_name, role) VALUES (
+INSERT INTO public.users (id, email, display_name, role) VALUES (
   'a1111111-1111-1111-1111-111111111111',
   'testartist@ncsound.test',
   'Test Artist', 'artist'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.artists (id, user_id, legal_name, stage_name, pro_affiliation) VALUES (
+  'a1111111-1111-1111-1111-111111111111',
+  'a1111111-1111-1111-1111-111111111111',
+  'Test Artist Legal', 'Test Artist Stage', 'BMI'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 2. Test Admin account
@@ -43,7 +49,7 @@ INSERT INTO auth.users (
   now(), now(), now(), '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users (id, email, full_name, role) VALUES (
+INSERT INTO public.users (id, email, display_name, role) VALUES (
   'b2222222-2222-2222-2222-222222222222',
   'testadmin@ncsound.test',
   'Test Admin', 'admin'

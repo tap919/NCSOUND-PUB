@@ -10,3 +10,17 @@ coverage/
 test-results/
 *.snapshot.txt
 AgentBrowser-main/
+
+# Large binary assets — kept on disk for builds, not tracked in git
+assets/
+public/assets/
+temp/
+niro-music-snapshot.txt
+supabase-login-snapshot.txt
+tests/e2e/test.mode
+*.mp3
+*.wav
+*.m4a
+*.wma
+*.flac
+*.aac

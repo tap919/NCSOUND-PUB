@@ -11,9 +11,10 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.*', 'src/test/**', 'src/types/**'],
+      exclude: ['src/**/*.test.*', 'src/test/**', 'src/types/**', 'src/routes/**'],
       // Thresholds: 50% phase coverage achieved (2026-06-16).
       // Raise to 40/35/40/40 for 100% phase target.
+      // src/routes/** is excluded — those are Express router wrappers covered by integration tests, not unit tests.
       thresholds: {
         statements: 31,
         branches: 24,

@@ -12,9 +12,11 @@ export default function SupervisorPortal() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let ignore = false;
     supabase.from('tracks').select('*, artists(stage_name)').eq('status', 'active').limit(4).order('created_at', { ascending: false }).then(({ data }) => {
-      if (data) setRecentTracks(data);
+      if (!ignore && data) setRecentTracks(data);
     });
+    return () => { ignore = true; };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {

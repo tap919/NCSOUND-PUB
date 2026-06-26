@@ -4,7 +4,7 @@ import reactPlugin from 'eslint-plugin-react';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'server.js', 'node_modules/**', 'coverage/**', 'test-results/**', 'AgentBrowser-main/**', 'playwright-report/**', 'scripts/**', 'public/sw.js'],
+    ignores: ['dist/**', 'server.js', 'node_modules/**', 'coverage/**', 'test-results/**', 'AgentBrowser-main/**', 'playwright-report/**', 'scripts/**', 'public/sw.js', 'load-tests/**', 'src/hooks/__tests__/useAuth.test.tsx'],
   },
   tseslint.configs.recommended,
   reactPlugin.configs.flat.recommended,

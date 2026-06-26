@@ -4,12 +4,10 @@
  * Generate a text embedding via Gemini API
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const res = await fetch('/api/gemini', {
+  const res = await fetch('/api/analyze/embed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: `Generate a semantic embedding vector (384 dimensions) for the following text. Return ONLY a JSON array of numbers, no other text:\n\n${text}`,
-    }),
+    body: JSON.stringify({ text }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Embedding generation failed');

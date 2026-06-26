@@ -41,16 +41,18 @@ export default function Upload() {
 
     setLoading(true);
     try {
-        const { data: artistRow } = await supabase
+        const { data: artistRow, error: artistError } = await supabase
           .from('artists')
-          .select('*')
+          .select('id')
           .eq('user_id', user.id)
           .single();
-        const artist = artistRow as unknown as { id: string } | null;
-
-        if (!artist) {
-          throw new Error('Artist profile not found. Please contact support.');
+        
+        if (artistError) {
+          console.error("Error fetching artist profile:", artistError);
+          throw new Error('Artist profile not found or database error. Please contact support.');
         }
+
+        const artist = artistRow as { id: string };
 
         const trackPayload: Record<string, any> = {
             artist_id: artist.id,
@@ -62,9 +64,12 @@ export default function Upload() {
             status: 'metadata_review',
             visibility: 'supervisors_only'
         };
-        const { data: track, error: trackError } = await (supabase.from('tracks') as any).insert(trackPayload).select().single();
+        const { data: track, error: trackError } = await (supabase.from('tracks') as any).insert(trackPayload).select('id').single();
         
-        if (trackError) throw trackError;
+        if (trackError) {
+          console.error("Error inserting track:", trackError);
+          throw trackError;
+        }
         
         // Auto-analyze: classify mood/genre via Gemini from the track metadata
         try {

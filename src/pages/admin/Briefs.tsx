@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrainCircuit, ChevronLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -10,12 +10,14 @@ export default function Briefs() {
   const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
   const [matches, setMatches] = useState<{ track_id: string; title: string; score: number }[]>([]);
   const [matching, setMatching] = useState(false);
+  const matchRequestId = useRef(0);
 
   useEffect(() => { let ignore = false; (async () => { const { data } = await supabase.from('briefs').select('*').order('created_at', { ascending: false }); if (!ignore) { if (data) setBriefs(data); setLoading(false); } })(); return () => { ignore = true; }; }, []);
 
   const matchBrief = async (brief: any) => {
     setSelectedBrief(brief);
     setMatching(true);
+    const reqId = ++matchRequestId.current;
     let query = supabase.from('tracks').select('*, artists(stage_name)').eq('status', 'active');
 
     if (brief.use_type) query = query.ilike('genre', `%${brief.use_type}%`);
@@ -24,8 +26,10 @@ export default function Briefs() {
     if (brief.mood_tags?.length > 0) query = query.contains('mood_tags', brief.mood_tags);
 
     const { data } = await query.limit(10);
-    setMatches(data || []);
-    setMatching(false);
+    if (reqId === matchRequestId.current) {
+      setMatches(data || []);
+      setMatching(false);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {

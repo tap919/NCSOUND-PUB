@@ -2,12 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('../../lib/supabase', () => {
-  function chain(returnData: any[] | null = []) {
-    const thenFulfill = (cb: (val: any) => void) => cb({ data: returnData, error: null });
-    return { then: thenFulfill, select: () => chain(returnData), order: () => chain(returnData), range: () => chain(returnData) };
-  }
-  return { supabase: { from: () => chain() } };
+vi.mock('../../../lib/supabase', () => {
+  const emptyResult = { data: [], error: null };
+  const chainProxy: any = new Proxy({}, {
+    get(_target, prop) {
+      if (prop === 'then') {
+        return (resolve: any) => resolve(emptyResult);
+      }
+      return (..._args: any[]) => chainProxy;
+    },
+  });
+  return { supabase: { from: () => chainProxy } };
 });
 
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
@@ -32,7 +37,7 @@ describe('Admin Inbox', () => {
 
   it('shows empty state when no submissions', async () => {
     renderInbox();
-    await expect(screen.findByText('No submissions yet.', {}, { timeout: 5000 })).resolves.toBeVisible();
+    await waitFor(() => expect(screen.getByText('No submissions yet.')).toBeVisible());
   });
 
   it('shows pagination', async () => {

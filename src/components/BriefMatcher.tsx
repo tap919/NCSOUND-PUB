@@ -16,68 +16,71 @@ export function BriefMatcher({ brief }: { brief: BriefInput }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    matchTracks();
-  }, [brief]);
+    let ignore = false;
+    const run = async () => {
+      setLoading(true);
+      let results: any[] = [];
 
-  const matchTracks = async () => {
-    setLoading(true);
-    let results: any[] = [];
+      // Try Gemini API first for AI-powered matching
+      try {
+        const prompt = `Given a music supervisor brief looking for tracks with: genre=${brief.genre || 'any'}, mood=${brief.mood || 'any'}, bpm=${brief.bpmMin || 'any'}-${brief.bpmMax || 'any'}, energy=${brief.energy || 'any'}, return a JSON array of track IDs that would match. Only respond with valid JSON, no explanations.`;
 
-    // Try Gemini API first for AI-powered matching
-    try {
-      const prompt = `Given a music supervisor brief looking for tracks with: genre=${brief.genre || 'any'}, mood=${brief.mood || 'any'}, bpm=${brief.bpmMin || 'any'}-${brief.bpmMax || 'any'}, energy=${brief.energy || 'any'}, return a JSON array of track IDs that would match. Only respond with valid JSON, no explanations.`;
+        const geminiRes = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
 
-      const geminiRes = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
+        if (geminiRes.ok) {
+          const geminiData = await geminiRes.json();
+          if (geminiData.text) {
+            try {
+              const parsed = JSON.parse(geminiData.text);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                const { data } = await supabase
+                  .from('tracks')
+                  .select('*, artists(stage_name)')
+                  .in('id', parsed)
+                  .limit(10);
+                if (data) results = data;
+              }
+            } catch {}
+          }
+        }
+      } catch {}
 
-      if (geminiRes.ok) {
-        const geminiData = await geminiRes.json();
-        if (geminiData.text) {
-          try {
-            const parsed = JSON.parse(geminiData.text);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const { data } = await supabase
-                .from('tracks')
-                .select('*, artists(stage_name)')
-                .in('id', parsed)
-                .limit(10);
-              if (data) results = data;
-            }
-          } catch {}
+      // Fallback: SQL-based matching
+      if (results.length === 0) {
+        let query = supabase
+          .from('tracks')
+          .select('*, artists(stage_name)')
+          .eq('status', 'active')
+          .in('visibility', ['public', 'supervisors_only']);
+
+        if (brief.genre) query = query.ilike('genre', `%${brief.genre}%`);
+        if (brief.bpmMin) query = query.gte('bpm', brief.bpmMin);
+        if (brief.bpmMax) query = query.lte('bpm', brief.bpmMax);
+        if (brief.energy) query = query.ilike('energy_level', `%${brief.energy}%`);
+
+        const { data } = await query.limit(10);
+        results = data || [];
+
+        if (brief.mood && results.length > 0) {
+          const moodLower = brief.mood.toLowerCase();
+          results = results.filter((t: any) =>
+            t.mood_tags?.some((m: string) => m.toLowerCase().includes(moodLower))
+          );
         }
       }
-    } catch {}
 
-    // Fallback: SQL-based matching
-    if (results.length === 0) {
-      let query = supabase
-        .from('tracks')
-        .select('*, artists(stage_name)')
-        .eq('status', 'active')
-        .in('visibility', ['public', 'supervisors_only']);
-
-      if (brief.genre) query = query.ilike('genre', `%${brief.genre}%`);
-      if (brief.bpmMin) query = query.gte('bpm', brief.bpmMin);
-      if (brief.bpmMax) query = query.lte('bpm', brief.bpmMax);
-      if (brief.energy) query = query.ilike('energy_level', `%${brief.energy}%`);
-
-      const { data } = await query.limit(10);
-      results = data || [];
-
-      if (brief.mood && results.length > 0) {
-        const moodLower = brief.mood.toLowerCase();
-        results = results.filter((t: any) =>
-          t.mood_tags?.some((m: string) => m.toLowerCase().includes(moodLower))
-        );
+      if (!ignore) {
+        setMatches(results);
+        setLoading(false);
       }
-    }
-
-    setMatches(results);
-    setLoading(false);
-  };
+    };
+    run();
+    return () => { ignore = true; };
+  }, [brief]);
 
   if (loading) {
     return (
